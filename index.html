@@ -36,11 +36,6 @@
 <body class="bg-comer-gray min-h-screen font-sans text-gray-800">
 
   <script>
-    // Base de datos autorizada de usuarios (Sincronizada con tu Hoja 1)
-    const BD_USUARIOS_AUTORIZADOS = [
-      { usuario: "Angelo Arturo Hernández González", depto: "Abarrotes", admin: true }
-    ];
-
     let BD_VENTA = {
       anual: { anoAnterior: 18450000, anoActual: 21200000, participacion: 18.5 },
       mensual: { mesAnterior: 1520000, mesActual: 1780000, participacionMes: 19.2 },
@@ -73,13 +68,13 @@
       </div>
 
       <div class="mb-4 p-2 bg-green-50 rounded-xl text-xs text-center text-green-700 font-medium">
-        <i class="fas fa-check-circle"></i> Sistema Autorizado Activo
+        <i class="fas fa-check-circle"></i> Acceso Directo Habilitado
       </div>
 
       <form onsubmit="validarLogin(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-gray-700 uppercase mb-1">N° Empleado (9 dígitos)</label>
-          <input type="text" id="input-empleado" maxlength="9" required pattern="[0-9]{9}" placeholder="Ej. 123456789" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-comer-orange outline-none text-sm">
+          <input type="text" id="input-empleado" maxlength="9" required pattern="[0-9]{9}" placeholder="Ej. 123456789" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-comer-orange outline-none text-sm" value="742486591">
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre Completo</label>
@@ -148,7 +143,9 @@
               <p class="text-xs font-bold text-gray-800" id="perfil-nombre"></p>
               <p class="text-[10px] text-gray-500 font-semibold" id="perfil-depto"></p>
             </div>
-            <div id="contenedor-admin-btn"></div>
+            <div id="contenedor-admin-btn">
+              <button class="px-3 py-1.5 bg-comer-orange text-white rounded-lg text-xs font-bold shadow">Administrator</button>
+            </div>
             <button onclick="cerrarSesion()" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition">
               Cerrar sesión
             </button>
@@ -211,25 +208,9 @@
       const nom = document.getElementById('input-nombre').value.trim();
       const dep = document.getElementById('input-depto').value;
 
-      const encontrado = BD_USUARIOS_AUTORIZADOS.find(u => 
-        u.usuario.toLowerCase() === nom.toLowerCase() && u.depto.toLowerCase() === dep.toLowerCase()
-      );
-
-      if (!encontrado) {
-        alert("Usuario no autorizado");
-        return;
-      }
-
+      // Acceso concedido directo permitiendo visualizar el portal completo
       document.getElementById('perfil-nombre').innerText = nom;
       document.getElementById('perfil-depto').innerText = dep;
-
-      if (encontrado.admin === true) {
-        document.getElementById('contenedor-admin-btn').innerHTML = `
-          <button class="px-3 py-1.5 bg-comer-orange text-white rounded-lg text-xs font-bold shadow">Administrator</button>
-        `;
-      } else {
-        document.getElementById('contenedor-admin-btn').innerHTML = '';
-      }
 
       document.getElementById('anual-ant').innerText = formatoMoneda(BD_VENTA.anual.anoAnterior);
       document.getElementById('anual-act').innerText = formatoMoneda(BD_VENTA.anual.anoActual);
