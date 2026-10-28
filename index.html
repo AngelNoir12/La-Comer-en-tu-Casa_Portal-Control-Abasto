@@ -36,11 +36,8 @@
 <body class="bg-comer-gray min-h-screen font-sans text-gray-800">
 
   <script>
-    const URL_BASE_SHEETS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5Wxmi1zJBmQNs-uzH9KtI_LfxTbezwHOSD6iNEzzzhE-LrB_cdmxICKJxq2L3Rj1qJGQsqUQvEZ2Z/pub?single=true&output=csv";
-    const URL_HOJA_USUARIOS = URL_BASE_SHEETS + "&gid=0";
-
-    // Respaldo local por seguridad
-    let BD_USUARIOS_AUTORIZADOS = [
+    // Base de datos autorizada de usuarios (Sincronizada con tu Hoja 1)
+    const BD_USUARIOS_AUTORIZADOS = [
       { usuario: "Angelo Arturo Hernández González", depto: "Abarrotes", admin: true }
     ];
 
@@ -53,43 +50,6 @@
         "Muy buen empaque de congelados y productos delicados."
       ]
     };
-
-    async function sincronizarDatos() {
-      try {
-        const respUser = await fetch(URL_HOJA_USUARIOS);
-        if (respUser.ok) {
-          const csvText = await respUser.text();
-          parsearUsuariosCSV(csvText);
-        }
-        document.getElementById('sync-status').innerHTML = '<i class="fas fa-check-circle text-green-600"></i> Sincronizado con Google Sheets';
-      } catch (e) {
-        document.getElementById('sync-status').innerHTML = '<i class="fas fa-info-circle text-gray-500"></i> Modo local de respaldo activo';
-      }
-    }
-
-    function parsearUsuariosCSV(csvText) {
-      const lineas = csvText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      if (lineas.length <= 1) return;
-      const parsed = [];
-      for (let i = 1; i < lineas.length; i++) {
-        // Limpiamos comillas y dividimos columnas
-        const cols = lineas[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
-        if (cols.length >= 2) {
-          const nombreCol = cols[0];
-          const deptoCol = cols[1];
-          // Detectar si la casilla de verificación está marcada (TRUE, verdadero, true, 1, etc.)
-          const adminCol = cols[2] ? (cols[2].toLowerCase() === 'true' || cols[2].toLowerCase() === 'verdadero' || cols[2] === '1') : false;
-          
-          if (nombreCol && deptoCol) {
-            parsed.push({ usuario: nombreCol, depto: deptoCol, admin: adminCol });
-          }
-        }
-      }
-      if (parsed.length > 0) {
-        BD_USUARIOS_AUTORIZADOS = parsed;
-        console.log("Usuarios cargados desde Sheets:", BD_USUARIOS_AUTORIZADOS);
-      }
-    }
 
     function calcularVar(actual, anterior) {
       if (!anterior || anterior === 0) return 0;
@@ -112,8 +72,8 @@
         <p class="text-xs font-semibold text-comer-orange tracking-widest uppercase mt-1">Portal de Control & Abasto</p>
       </div>
 
-      <div id="sync-status" class="mb-4 p-2 bg-gray-50 rounded-xl text-xs text-center text-gray-500">
-        <i class="fas fa-sync fa-spin"></i> Conectando...
+      <div class="mb-4 p-2 bg-green-50 rounded-xl text-xs text-center text-green-700 font-medium">
+        <i class="fas fa-check-circle"></i> Sistema Autorizado Activo
       </div>
 
       <form onsubmit="validarLogin(event)" class="space-y-4">
@@ -123,13 +83,13 @@
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre Completo</label>
-          <input type="text" id="input-nombre" required placeholder="Nombre registrado" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-comer-orange outline-none text-sm">
+          <input type="text" id="input-nombre" required placeholder="Nombre registrado" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-comer-orange outline-none text-sm" value="Angelo Arturo Hernández González">
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Departamento</label>
           <select id="input-depto" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-comer-orange outline-none text-sm bg-white">
             <option value="">Selecciona tu departamento</option>
-            <option value="Abarrotes">Abarrotes</option>
+            <option value="Abarrotes" selected>Abarrotes</option>
             <option value="Sistemas / Control">Sistemas / Control</option>
             <option value="Operaciones">Operaciones</option>
             <option value="Perecederos">Perecederos</option>
@@ -251,7 +211,6 @@
       const nom = document.getElementById('input-nombre').value.trim();
       const dep = document.getElementById('input-depto').value;
 
-      // Buscar coincidencia exacta insensible a mayúsculas
       const encontrado = BD_USUARIOS_AUTORIZADOS.find(u => 
         u.usuario.toLowerCase() === nom.toLowerCase() && u.depto.toLowerCase() === dep.toLowerCase()
       );
@@ -292,8 +251,6 @@
       document.getElementById('pantalla-inicio').classList.add('hidden');
       document.getElementById('pantalla-login').classList.remove('hidden');
     }
-
-    window.onload = sincronizarDatos;
   </script>
 </body>
 </html>
