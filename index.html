@@ -36,34 +36,18 @@
 <body class="bg-comer-gray min-h-screen font-sans text-gray-800">
 
   <script>
-    // ==========================================
-    // CONFIGURACIÓN DE GOOGLE SHEETS (MULTI-PESTAÑA)
-    // ==========================================
     const URL_BASE_SHEETS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5Wxmi1zJBmQNs-uzH9KtI_LfxTbezwHOSD6iNEzzzhE-LrB_cdmxICKJxq2L3Rj1qJGQsqUQvEZ2Z/pub?single=true&output=csv";
-
-    // Pestaña 1: Usuarios (Columnas: USUARIO, DEPARTAMENTO, ¿ADMIN?)
     const URL_HOJA_USUARIOS = URL_BASE_SHEETS + "&gid=0";
-    // Pestaña 2: Venta (Indicadores Anuales, Mensuales, Puntualidad, Abasto, etc.)
-    const URL_HOJA_VENTA = URL_BASE_SHEETS + "&gid=123456789"; // Reemplaza por el gid real de tu hoja de venta
+    const URL_HOJA_VENTA = URL_BASE_SHEETS + "&gid=123456789";
 
-    // Datos de respaldo por si el fetch offline falla
     let BD_USUARIOS_AUTORIZADOS = [
       { usuario: "Angelo Arturo Hernández González", depto: "Sistemas / Control", admin: "SI" },
       { usuario: "María Guadalupe Pérez López", depto: "Operaciones", admin: "NO" }
     ];
 
     let BD_VENTA = {
-      anual: { anoAnterior: 18450000, anoActual: 21200000, pedidosAnterior: 22100, pedidosActual: 24800, ticketAnterior: 834.84, ticketActual: 854.83, participacion: 18.5 },
-      mensual: { mesAnterior: 1520000, mesActual: 1780000, pedidosAnt: 1850, pedidosAct: 2010, ticketAnt: 821.62, ticketAct: 885.57, participacionMes: 19.2 },
-      puntualidadArmado: 96.5,
-      puntualidadEntrega: 94.2,
-      abastoSinSustituto: 92.8,
-      abastoConSustituto: 97.4,
-      posicionamiento: [
-        { depto: "Abarrotes", venta: 6200000 },
-        { depto: "Perecederos", venta: 4800000 },
-        { depto: "Frutas y Verduras", venta: 3900000 }
-      ],
+      anual: { anoAnterior: 18450000, anoActual: 21200000, participacion: 18.5 },
+      mensual: { mesAnterior: 1520000, mesActual: 1780000, participacionMes: 19.2 },
       comentarios: [
         "Excelente atención en el armado de frutas y verduras.",
         "Pedido entregado 10 minutos antes del horario programado.",
@@ -73,22 +57,16 @@
 
     let sesionActual = null;
 
-    // Sincronización en vivo
     async function sincronizarDatos() {
-      const statusEl = document.getElementById('sync-status');
       try {
-        const [respUser, respVenta] = await Promise.all([
-          fetch(URL_HOJA_USUARIOS),
-          fetch(URL_HOJA_VENTA)
-        ]);
-
+        const respUser = await fetch(URL_HOJA_USUARIOS);
         if (respUser.ok) {
           const csvText = await respUser.text();
           parsearUsuariosCSV(csvText);
         }
-        if (statusEl) statusEl.innerHTML = '<i class="fas fa-check-circle text-green-600"></i> Sincronizado con Google Sheets en tiempo real';
+        document.getElementById('sync-status').innerHTML = '<i class="fas fa-check-circle text-green-600"></i> Sincronizado con Google Sheets';
       } catch (e) {
-        if (statusEl) statusEl.innerHTML = '<i class="fas fa-info-circle text-gray-500"></i> Modo local de respaldo activo';
+        document.getElementById('sync-status').innerHTML = '<i class="fas fa-info-circle text-gray-500"></i> Modo local de respaldo activo';
       }
     }
 
@@ -99,11 +77,7 @@
       for (let i = 1; i < lineas.length; i++) {
         const cols = lineas[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
         if (cols.length >= 2) {
-          parsed.push({
-            usuario: cols[0],
-            depto: cols[1],
-            admin: cols[2] || 'NO'
-          });
+          parsed.push({ usuario: cols[0], depto: cols[1], admin: cols[2] || 'NO' });
         }
       }
       if (parsed.length > 0) BD_USUARIOS_AUTORIZADOS = parsed;
@@ -111,7 +85,7 @@
 
     function calcularVar(actual, anterior) {
       if (!anterior || anterior === 0) return 0;
-      return ((anterior - actual) / anterior) * 100; // Fórmula solicitada: AÑO ANTERIOR - AÑO ACTUAL / AÑO ANTERIOR
+      return ((anterior - actual) / anterior) * 100;
     }
 
     function formatoMoneda(m) {
@@ -124,9 +98,7 @@
     <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
       <div class="text-center mb-6">
         <div class="flex justify-center items-center mb-3">
-          <div class="w-16 h-16 bg-comer-orange rounded-2xl flex items-center justify-center text-white text-3xl font-black shadow-lg">
-            LC
-          </div>
+          <div class="w-16 h-16 bg-comer-orange rounded-2xl flex items-center justify-center text-white text-3xl font-black shadow-lg">LC</div>
         </div>
         <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">La Comer en tu Casa</h1>
         <p class="text-xs font-semibold text-comer-orange tracking-widest uppercase mt-1">Portal de Control & Abasto</p>
@@ -164,88 +136,116 @@
     </div>
   </div>
 
-  <!-- PANTALLA: [INICIO] -->
-  <div id="pantalla-inicio" class="hidden min-h-screen pb-12">
-    <!-- Navbar / Encabezado -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+  <!-- PANTALLA: [INICIO] CON MENÚ LATERAL Y NAVEGACIÓN -->
+  <div id="pantalla-inicio" class="hidden min-h-screen pb-12 relative flex">
+    
+    <!-- MENÚ LATERAL (DRAWER) -->
+    <aside id="menu-lateral" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform -translate-x-full transition-transform duration-300 ease-in-out shadow-2xl flex flex-col">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-comer-orange rounded-xl flex items-center justify-center text-white font-black text-xl">LC</div>
-          <div>
-            <h2 class="text-sm font-bold text-gray-900 leading-none">La Comer en tu Casa</h2>
-            <span class="text-[10px] font-semibold text-comer-orange">Portal de Control & Abasto</span>
-          </div>
+          <div class="w-8 h-8 bg-comer-orange rounded-lg flex items-center justify-center font-black text-sm">LC</div>
+          <span class="text-xs font-bold uppercase tracking-wider">Menú Principal</span>
         </div>
-
-        <!-- Perfil y Acciones del Encabezado -->
-        <div class="flex items-center gap-4">
-          <div class="text-right">
-            <p class="text-xs font-bold text-gray-800" id="perfil-nombre"></p>
-            <p class="text-[10px] text-gray-500 font-semibold" id="perfil-depto"></p>
-          </div>
-          <div id="contenedor-admin-btn"></div>
-          <button onclick="cerrarSesion()" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition">
-            Cerrar sesión
-          </button>
-        </div>
+        <button onclick="toggleMenu()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-lg"></i></button>
       </div>
 
-      <!-- Marquesina de Comentarios (Derecha a Izquierda) -->
-      <div class="bg-slate-900 text-white text-xs py-2 overflow-hidden relative border-t border-slate-800">
-        <div class="flex items-center">
-          <div class="bg-comer-orange text-white text-[10px] font-extrabold uppercase px-3 py-1 z-10 whitespace-nowrap">
-            Comentarios de Servicio
+      <nav class="flex-1 p-4 space-y-2 text-sm font-medium">
+        <button onclick="cambiarSeccion('inicio')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-comer-orange text-white shadow"><i class="fas fa-home"></i> Inicio</button>
+        <button onclick="cambiarSeccion('indicadores')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-gray-300 transition"><i class="fas fa-chart-line"></i> Indicadores LCC</button>
+        <button onclick="cambiarSeccion('departamento')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-gray-300 transition"><i class="fas fa-store"></i> Mi departamento</button>
+        <button onclick="cambiarSeccion('reportes')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-gray-300 transition"><i class="fas fa-file-alt"></i> Reportes</button>
+        <button onclick="cambiarSeccion('sabermas')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-gray-300 transition"><i class="fas fa-info-circle"></i> Saber más</button>
+        <button onclick="cambiarSeccion('ayuda')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-gray-300 transition"><i class="fas fa-question-circle"></i> Ayuda</button>
+      </nav>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+          
+          <!-- Botón Menú Lateral + Logo y Título -->
+          <div class="flex items-center gap-3">
+            <button onclick="toggleMenu()" class="p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition">
+              <i class="fas fa-bars text-lg"></i>
+            </button>
+            <div class="w-10 h-10 bg-comer-orange rounded-xl flex items-center justify-center text-white font-black text-xl">LC</div>
+            <div>
+              <h2 class="text-sm font-bold text-gray-900 leading-none">La Comer en tu Casa</h2>
+              <span class="text-[10px] font-semibold text-comer-orange">Portal de Control & Abasto</span>
+            </div>
           </div>
-          <div class="overflow-hidden w-full relative">
-            <div id="marquee-box" class="whitespace-nowrap inline-block animate-marquee font-medium"></div>
+
+          <!-- Perfil y Acciones del Encabezado -->
+          <div class="flex items-center gap-4">
+            <div class="text-right hidden sm:block">
+              <p class="text-xs font-bold text-gray-800" id="perfil-nombre"></p>
+              <p class="text-[10px] text-gray-500 font-semibold" id="perfil-depto"></p>
+            </div>
+            <div id="contenedor-admin-btn"></div>
+            <button onclick="cerrarSesion()" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition">
+              Cerrar sesión
+            </button>
           </div>
         </div>
-      </div>
-    </header>
 
-    <!-- Contenido del Dashboard -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
-      
-      <!-- Indicadores de Venta: Anual y Mensual -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Anual -->
-        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-base font-black text-gray-900">Venta Anual</h3>
-            <span class="px-2.5 py-1 bg-orange-100 text-comer-orange text-xs font-extrabold rounded-full" id="lbl-part-anual">--% Participación</span>
-          </div>
-          <div class="grid grid-cols-3 gap-2 text-xs">
-            <div><p class="text-gray-400">Año Ant.</p><p class="font-bold" id="anual-ant">$0</p></div>
-            <div><p class="text-gray-400">Año Act.</p><p class="font-bold" id="anual-act">$0</p></div>
-            <div><p class="text-gray-400">Variación</p><p class="font-bold" id="anual-var">0%</p></div>
+        <!-- Marquesina -->
+        <div class="bg-slate-900 text-white text-xs py-2 overflow-hidden relative border-t border-slate-800">
+          <div class="flex items-center">
+            <div class="bg-comer-orange text-white text-[10px] font-extrabold uppercase px-3 py-1 z-10 whitespace-nowrap">Comentarios</div>
+            <div class="overflow-hidden w-full relative">
+              <div id="marquee-box" class="whitespace-nowrap inline-block animate-marquee font-medium"></div>
+            </div>
           </div>
         </div>
+      </header>
 
-        <!-- Mensual -->
-        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-base font-black text-gray-900">Venta Mensual</h3>
-            <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-extrabold rounded-full" id="lbl-part-mes">--% Participación</span>
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6 flex-1 w-full">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-base font-black text-gray-900">Venta Anual</h3>
+              <span class="px-2.5 py-1 bg-orange-100 text-comer-orange text-xs font-extrabold rounded-full" id="lbl-part-anual">--% Participación</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <div><p class="text-gray-400">Año Ant.</p><p class="font-bold" id="anual-ant">$0</p></div>
+              <div><p class="text-gray-400">Año Act.</p><p class="font-bold" id="anual-act">$0</p></div>
+              <div><p class="text-gray-400">Variación</p><p class="font-bold" id="anual-var">0%</p></div>
+            </div>
           </div>
-          <div class="grid grid-cols-3 gap-2 text-xs">
-            <div><p class="text-gray-400">Mes Ant.</p><p class="font-bold" id="mes-ant">$0</p></div>
-            <div><p class="text-gray-400">Mes Act.</p><p class="font-bold" id="mes-act">$0</p></div>
-            <div><p class="text-gray-400">Variación</p><p class="font-bold" id="mes-var">0%</p></div>
+
+          <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-base font-black text-gray-900">Venta Mensual</h3>
+              <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-extrabold rounded-full" id="lbl-part-mes">--% Participación</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <div><p class="text-gray-400">Mes Ant.</p><p class="font-bold" id="mes-ant">$0</p></div>
+              <div><p class="text-gray-400">Mes Act.</p><p class="font-bold" id="mes-act">$0</p></div>
+              <div><p class="text-gray-400">Variación</p><p class="font-bold" id="mes-var">0%</p></div>
+            </div>
           </div>
         </div>
-      </div>
-
-    </main>
+      </main>
+    </div>
   </div>
 
   <script>
+    function toggleMenu() {
+      const menu = document.getElementById('menu-lateral');
+      menu.classList.toggle('-translate-x-full');
+    }
+
+    function cambiarSeccion(seccion) {
+      toggleMenu();
+      alert("Navegando a la sección: " + seccion.toUpperCase());
+    }
+
     function validarLogin(e) {
       e.preventDefault();
-      const emp = document.getElementById('input-empleado').value.trim();
       const nom = document.getElementById('input-nombre').value.trim();
       const dep = document.getElementById('input-depto').value;
 
-      // Validar coincidencia en base de datos de usuarios
       const encontrado = BD_USUARIOS_AUTORIZADOS.find(u => 
         u.usuario.toLowerCase() === nom.toLowerCase() && u.depto === dep
       );
@@ -255,9 +255,6 @@
         return;
       }
 
-      sesionActual = { emp, nom, dep, admin: encontrado.admin };
-
-      // Cargar datos en pantalla INICIO
       document.getElementById('perfil-nombre').innerText = nom;
       document.getElementById('perfil-depto').innerText = dep;
 
@@ -267,7 +264,6 @@
         `;
       }
 
-      // Renderizar datos de venta
       document.getElementById('anual-ant').innerText = formatoMoneda(BD_VENTA.anual.anoAnterior);
       document.getElementById('anual-act').innerText = formatoMoneda(BD_VENTA.anual.anoActual);
       document.getElementById('anual-var').innerText = calcularVar(BD_VENTA.anual.anoActual, BD_VENTA.anual.anoAnterior).toFixed(1) + '%';
@@ -278,16 +274,13 @@
       document.getElementById('mes-var').innerText = calcularVar(BD_VENTA.mensual.mesActual, BD_VENTA.mensual.mesAnterior).toFixed(1) + '%';
       document.getElementById('lbl-part-mes').innerText = `${BD_VENTA.mensual.participacionMes}% Participación`;
 
-      // Marquesina
       document.getElementById('marquee-box').innerHTML = BD_VENTA.comentarios.map(c => `<span class="mx-6"><i class="fas fa-comment-dots text-comer-yellow mr-2"></i>"${c}"</span>`).join('');
 
-      // Transición de pantallas
       document.getElementById('pantalla-login').classList.add('hidden');
       document.getElementById('pantalla-inicio').classList.remove('hidden');
     }
 
     function cerrarSesion() {
-      sesionActual = null;
       document.getElementById('pantalla-inicio').classList.add('hidden');
       document.getElementById('pantalla-login').classList.remove('hidden');
     }
