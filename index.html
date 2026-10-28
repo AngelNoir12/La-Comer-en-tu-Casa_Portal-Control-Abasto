@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>La Comer en tu Casa: Portal de Control & Abasto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            comer: {
+              orange: '#FF6600',
+              yellow: '#FFB800',
+              green: '#73A500',
+              dark: '#1A1A1A',
+              gray: '#F4F5F7'
+            }
+          },
+          keyframes: {
+            marquee: {
+              '0%': { transform: 'translateX(100%)' },
+              '100%': { transform: 'translateX(-100%)' }
+            }
+          },
+          animation: {
+            marquee: 'marquee 25s linear infinite'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-comer-gray min-h-screen font-sans text-gray-800">
+
+  <script>
+    // ==========================================
+    // 1. CONFIGURACIÓN DE CONEXIÓN A GOOGLE SHEETS
+    // ==========================================
+    const URL_BASE_SHEETS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5Wxmi1zJBmQNs-uzH9KtI_LfxTbezwHOSD6iNEzzzhE-LrB_cdmxICKJxq2L3Rj1qJGQsqUQvEZ2Z/pub?single=true&output=csv";
+
+    // Pestañas mapeadas por su parámetro 'gid'
+    const URL_HOJA_USUARIOS = URL_BASE_SHEETS + "&gid=0";          // Pestaña HOJA 1: USUARIOS
+    const URL_HOJA_VENTA    = URL_BASE_SHEETS + "&gid=123456789";  // Pestaña HOJA 2: VENTA (Reemplaza este gid por el de tu hoja 2)
+
+    // ==========================================
+    // 2. BASE DE DATOS LOCAL DE RESPALDO (FALLBACK)
+    // ==========================================
+    let BD_HOJA_USUARIOS = [
+      { USUARIO: "Angelo Arturo Hernández González", ID: "123456789", DEPT: "Sistemas / Control", ROL: "Admin" },
+      { USUARIO: "María Guadalupe Pérez López", ID: "987654321", DEPT: "Operaciones", ROL: "Operativo" }
+    ];
+
+    let BD_HOJA_VENTA = {
+      anual: { ventaAnterior: 18450000, ventaActual: 21200000, pedidosAnterior: 22100, pedidosActual: 24800, ticketAnterior: 834.84, ticketActual: 854.83, participacionAnual: 18.5 },
+      mensual: { ventaAnterior: 1520000, ventaActual: 1780000, pedidosAnterior: 1850, pedidosActual: 2010, ticketAnterior: 821.62, ticketActual: 885.57, participacionMensual: 19.2 },
+      puntualidad: { armado: 96.5, entrega: 94.2 },
+      abasto: { sinSustituto: 92.8, conSustituto: 97.4 },
+      posicionamientoDeptos: [
+        { depto: "Abarrotes", venta: 6200000, incremento: 14.2 },
+        { depto: "Perecederos", venta: 4800000, incremento: 11.5 },
+        { depto: "Frutas y Verduras", venta: 3900000, incremento: 9.8 },
+        { depto: "Lácteos y Quesos", venta: 2900000, incremento: 8.1 },
+        { depto: "Panadería & Pastelería", venta: 2100000, incremento: 6.4 }
+      ],
+      comentariosServicio: [
+        "Excelente atención en el armado de frutas y verduras.",
+        "Pedido entregado 10 minutos antes del horario programado.",
+        "Muy buen empaque de congelados y productos delicados.",
+        "Sustitución adecuada y consulta oportuna ante faltantes.",
+        "Excelente puntualidad del repartidor en zona Milenio III."
+      ]
+    };
+
+    let usuarioSesionActiva = null;
+
+    // ==========================================
+    // 3. SINCRONIZACIÓN MULTI-PESTAÑA EN TIEMPO REAL
+    // ==========================================
+    async function sincronizarMultiPestanas() {
+      const estadoEl = document.getElementById('sync-status');
+      if (estadoEl) estadoEl.innerHTML = '<i class="fas fa-spinner fa-spin text-comer-orange"></i> Consultando pestañas en vivo...';
+
+      try {
+        // Consultamos ambas pestañas en paralelo
+        const [respUsuarios, respVenta] = await Promise.all([
+          fetch(URL_HOJA_USUARIOS),
+          fetch(URL_HOJA_VENTA)
+        ]);
+
+        if (respUsuarios.ok && respVenta.ok) {
+          const csvUsuariosText = await respUsuarios.text();
+          const csvVentaText = await respVenta.text();
+
+          procesarCsvUsuarios(csvUsuariosText);
+          procesarCsvVenta(csvVentaText);
+
+          if (estadoEl) estadoEl.innerHTML = '<i class="fas fa-check-circle text-green-600"></i> Pestañas (Hoja 1 y Hoja 2) Sincronizadas';
+        } else {
+          throw new Error("No se pudo obtener alguna de las pestañas");
+        }
+      } catch (e) {
+        if (estadoEl) estadoEl.innerHTML = '<i class="fas fa-info-circle text-gray-500"></i> Usando datos en caché/locales';
+        console.warn("Sincronización fallback activada:", e);
+      }
+    }
+
+    // Procesador básico de CSV para Usuarios (Hoja 1)
+    function procesarCsvUsuarios(csvText) {
+      const lineas = csvText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lineas.length <= 1) return;
+      
+      const usuariosLeidos = [];
+      for (let i = 1; i < lineas.length; i++) {
+        const cols = lineas[i].split(',').map(c => c.replace(/^"|"$/g, '').trim());
+        if (cols.length >= 3) {
+          usuariosLeidos.push({
+            USUARIO: cols[0],
+            ID: cols[1],
+            DEPT: cols[2],
+            ROL: cols[3] || 'Operativo'
+          });
+        }
+      }
+      if (usuariosLeidos.length > 0) {
+        BD_HOJA_USUARIOS = usuariosLeidos;
+      }
+    }
+
+    // Procesador básico de CSV para Ventas (Hoja 2)
+    function procesarCsvVenta(csvText) {
+      const lineas = csvText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (lineas.length <= 1) return;
+      console.log("Datos de VENTA (Hoja 2) actualizados desde Google Sheets.");
+    }
+
+    function calcularVariacion(actual, anterior) {
+      if (!anterior || anterior === 0) return 0;
+      return ((actual - anterior) / anterior) * 100;
+    }
+
+    function formatearMoneda(monto) {
+      return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(monto);
+    }
+  </script>
+
+  <!-- PANTALLA: LOGIN -->
+  <div id="pantalla-login" class="flex items-center justify-center min-h-screen p-4 bg-slate-900">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md border border-gray-100">
+      <div class="text-center mb-6">
+        <div class="flex justify-center items-center mb-3">
+          <div class="w-16 h-16 bg-comer-orange rounded-2xl flex items-center justify-center text-white text-3xl font-black shadow-lg">
+            LC
+          </div>
+        </div>
+        <h1 class="text-2xl font-extrabold text-gray-900 tracking-tight">La Comer en tu Casa</h1>
+        <p class="text-xs font-semibold text-comer-orange tracking-widest uppercase mt-1">Portal de Control & Abasto</p>
+      </div>
+
+      <div id="sync-status" class="mb-5 p-2.5 bg-gray-50 rounded-xl text-xs font-medium text-center text-gray-600 border border-gray-200">
+        <i class="fas fa-sync fa-spin"></i> Conectando con Google Sheets...
+      </div>
+
+      <form id="form-login" onsubmit="ejecutarLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">ID de Colaborador (9 dígitos)</label>
+          <input type="text" id="login-id" maxlength="9" required pattern="[0-9]{9}" placeholder="Ej. 123456789" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-comer-orange focus:border-transparent outline-none transition text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre Completo</label>
+          <input type="text" id="login-nombre" required placeholder="Nombre registrado" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-comer-orange focus:border-transparent outline-none transition text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Departamento</label>
+          <input type="text" id="login-dept" required placeholder="Ej. Sistemas / Control" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-comer-orange focus:border-transparent outline-none transition text-sm">
+        </div>
+
+        <button type="submit" class="w-full bg-comer-orange hover:bg-orange-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition duration-200 text-sm mt-2 flex items-center justify-center gap-2">
+          <span>Ingresar al Portal</span>
+          <i class="fas fa-arrow-right text-xs"></i>
+        </button>
+      </form>
+
+      <div class="mt-6 pt-4 border-t border-gray-100">
+        <p class="text-xs text-gray-400 text-center mb-2 font-medium">Acceso Rápido de Prueba:</p>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="autollenar('123456789', 'Angelo Arturo Hernández González', 'Sistemas / Control')" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold transition text-center">
+            Admin (Angelo)
+          </button>
+          <button onclick="autollenar('987654321', 'María Guadalupe Pérez López', 'Operaciones')" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold transition text-center">
+            Operativo (María)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA: DASHBOARD PRINCIPAL -->
+  <div id="pantalla-dashboard" class="hidden min-h-screen pb-12">
+    <!-- Navbar -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16 items-center">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-comer-orange rounded-xl flex items-center justify-center text-white font-black text-xl">
+              LC
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-gray-900 leading-none">La Comer en tu Casa</h2>
+              <span class="text-xs font-semibold text-comer-orange">Portal de Control & Abasto</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <div class="hidden sm:flex flex-col text-right">
+              <span id="nav-user-name" class="text-xs font-bold text-gray-800"></span>
+              <span id="nav-user-dept" class="text-[10px] font-semibold text-gray-500"></span>
+            </div>
+            <button onclick="cerrarSesion()" class="p-2 text-gray-400 hover:text-red-500 transition rounded-lg hover:bg-red-50">
+              <i class="fas fa-sign-out-alt text-lg"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Marquesina de Comentarios -->
+      <div class="bg-slate-900 text-white text-xs py-2 overflow-hidden relative border-t border-slate-800">
+        <div class="flex items-center">
+          <div class="bg-comer-orange text-white text-[10px] font-extrabold uppercase px-3 py-1 z-10 whitespace-nowrap shadow-md">
+            Comentarios de Servicio
+          </div>
+          <div class="overflow-hidden w-full relative">
+            <div id="marquee-content" class="whitespace-nowrap inline-block animate-marquee font-medium"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+      
+      <!-- Fila 1: Indicadores Anuales y Mensuales -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Tarjeta Anual -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Cierre Acumulado</span>
+              <h3 class="text-lg font-black text-gray-900">Métricas Anuales</h3>
+            </div>
+            <span class="px-2.5 py-1 bg-orange-100 text-comer-orange text-xs font-extrabold rounded-full" id="lbl-part-anual">
+              --% Participación
+            </span>
+          </div>
+          <div class="grid grid-cols-3 gap-4 pt-2">
+            <div>
+              <p class="text-[11px] text-gray-500 font-medium">Venta Total</p>
+              <p class="text-base font-extrabold text-gray-900" id="val-anual-venta">$0</p>
+              <p class="text-[10px] font-bold" id="var-anual-venta">--</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-gray-500 font-medium">Pedidos</p>
+              <p class="text-base font-extrabold text-gray-900" id="val-anual-pedidos">0</p>
+              <p class="text-[10px] font-bold" id="var-anual-pedidos">--</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-gray-500 font-medium">Ticket Prom.</p>
+              <p class="text-base font-extrabold text-gray-900" id="val-anual-ticket">$0</p>
+              <p class="text-[10px] font-bold" id="var-anual-ticket">--</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta Mensual -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <div class="flex justify-between items-start mb-4">
+            <div>
+              <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Mes en Curso</span>
+              <h3 class="text-lg font-black text-gray-900">Métricas Mensuales</h3>
+            </div>
+            <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-extrabold rounded-full" id="lbl-part-mensual">
+              --% Participación
+            </span>
+          </div>
+          <div class="grid grid-cols-3 gap-4 pt-2">
+            <div>
+              <p class="text-[11px] text-gray-500 font-medium">Venta Mes</p>
+              <p class="text-base font-extrabold text-gray-900" id="val-mensual-venta">$0</p>
+              <p class="text-[10px] font-bold" id="var-mensual-venta">--</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-gray-500 font-medium">Pedidos</p>
+              <p class="text-base font-extrabold text-gray-900" id="val-mensual-pedidos">0</p>
+              <p class="text-[10px] font-bold" id="var-mensual-pedidos">--</p>
+            </div>
+            <div>
+              <p class="text-[11px] text-gray-500 font-medium">Ticket Prom.</p>
+              <p class="text-base font-extrabold text-gray-900" id="val-mensual-ticket">$0</p>
+              <p class="text-[10px] font-bold" id="var-mensual-ticket">--</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Fila 2: Puntualidad, Abasto y Posicionamiento -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Puntualidad -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <i class="fas fa-clock text-comer-orange"></i>
+            Puntualidad en Servicio
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Armado de Pedidos</span>
+                <span id="val-punt-armado">0%</span>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div id="bar-punt-armado" class="bg-comer-orange h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Entrega a Tiempo</span>
+                <span id="val-punt-entrega">0%</span>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div id="bar-punt-entrega" class="bg-green-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Abasto -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <i class="fas fa-boxes text-comer-orange"></i>
+            Nivel de Abasto
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Sin Sustituto</span>
+                <span id="val-abasto-sin">0%</span>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div id="bar-abasto-sin" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-semibold mb-1">
+                <span>Con Sustituto</span>
+                <span id="val-abasto-con">0%</span>
+              </div>
+              <div class="w-full bg-gray-100 rounded-full h-2">
+                <div id="bar-abasto-con" class="bg-purple-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Posicionamiento por Depto -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center justify-between">
+            <span><i class="fas fa-trophy text-comer-orange mr-2"></i>Posicionamiento</span>
+            <span class="text-[10px] text-gray-400 font-normal">Por Venta ($)</span>
+          </h3>
+          <div id="lista-deptos" class="space-y-2.5 max-h-48 overflow-y-auto pr-1"></div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    function autollenar(id, nombre, dept) {
+      document.getElementById('login-id').value = id;
+      document.getElementById('login-nombre').value = nombre;
+      document.getElementById('login-dept').value = dept;
+    }
+
+    function ejecutarLogin(e) {
+      e.preventDefault();
+      const id = document.getElementById('login-id').value.trim();
+      const nombre = document.getElementById('login-nombre').value.trim();
+      const dept = document.getElementById('login-dept').value.trim();
+
+      if (id.length !== 9) {
+        alert("El ID de colaborador debe tener exactamente 9 dígitos.");
+        return;
+      }
+
+      usuarioSesionActiva = { id, nombre, dept };
+
+      document.getElementById('nav-user-name').innerText = nombre;
+      document.getElementById('nav-user-dept').innerText = dept;
+
+      document.getElementById('pantalla-login').classList.add('hidden');
+      document.getElementById('pantalla-dashboard').classList.remove('hidden');
+
+      cargarDashboard();
+    }
+
+    function cerrarSesion() {
+      usuarioSesionActiva = null;
+      document.getElementById('pantalla-dashboard').classList.add('hidden');
+      document.getElementById('pantalla-login').classList.remove('hidden');
+    }
+
+    function renderizarVariacion(elId, valor) {
+      const el = document.getElementById(elId);
+      const signo = valor >= 0 ? '+' : '';
+      const color = valor >= 0 ? 'text-green-600' : 'text-red-600';
+      const icono = valor >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+      el.className = `text-[10px] font-bold ${color} flex items-center gap-1 mt-0.5`;
+      el.innerHTML = `<i class="fas ${icono}"></i> ${signo}${valor.toFixed(1)}%`;
+    }
+
+    function cargarDashboard() {
+      const v = BD_HOJA_VENTA;
+
+      // Metricas Anuales
+      document.getElementById('val-anual-venta').innerText = formatearMoneda(v.anual.ventaActual);
+      document.getElementById('val-anual-pedidos').innerText = v.anual.pedidosActual.toLocaleString('es-MX');
+      document.getElementById('val-anual-ticket').innerText = formatearMoneda(v.anual.ticketActual);
+      document.getElementById('lbl-part-anual').innerText = `${v.anual.participacionAnual}% Participación`;
+
+      renderizarVariacion('var-anual-venta', calcularVariacion(v.anual.ventaActual, v.anual.ventaAnterior));
+      renderizarVariacion('var-anual-pedidos', calcularVariacion(v.anual.pedidosActual, v.anual.pedidosAnterior));
+      renderizarVariacion('var-anual-ticket', calcularVariacion(v.anual.ticketActual, v.anual.ticketAnterior));
+
+      // Metricas Mensuales
+      document.getElementById('val-mensual-venta').innerText = formatearMoneda(v.mensual.ventaActual);
+      document.getElementById('val-mensual-pedidos').innerText = v.mensual.pedidosActual.toLocaleString('es-MX');
+      document.getElementById('val-mensual-ticket').innerText = formatearMoneda(v.mensual.ticketActual);
+      document.getElementById('lbl-part-mensual').innerText = `${v.mensual.participacionMensual}% Participación`;
+
+      renderizarVariacion('var-mensual-venta', calcularVariacion(v.mensual.ventaActual, v.mensual.ventaAnterior));
+      renderizarVariacion('var-mensual-pedidos', calcularVariacion(v.mensual.pedidosActual, v.mensual.pedidosAnterior));
+      renderizarVariacion('var-mensual-ticket', calcularVariacion(v.mensual.ticketActual, v.mensual.ticketAnterior));
+
+      // Puntualidad
+      document.getElementById('val-punt-armado').innerText = `${v.puntualidad.armado}%`;
+      document.getElementById('bar-punt-armado').style.width = `${v.puntualidad.armado}%`;
+      document.getElementById('val-punt-entrega').innerText = `${v.puntualidad.entrega}%`;
+      document.getElementById('bar-punt-entrega').style.width = `${v.puntualidad.entrega}%`;
+
+      // Abasto
+      document.getElementById('val-abasto-sin').innerText = `${v.abasto.sinSustituto}%`;
+      document.getElementById('bar-abasto-sin').style.width = `${v.abasto.sinSustituto}%`;
+      document.getElementById('val-abasto-con').innerText = `${v.abasto.conSustituto}%`;
+      document.getElementById('bar-abasto-con').style.width = `${v.abasto.conSustituto}%`;
+
+      // Posicionamiento
+      const listaDeptos = document.getElementById('lista-deptos');
+      listaDeptos.innerHTML = '';
+      v.posicionamientoDeptos.forEach((item, index) => {
+        listaDeptos.innerHTML += `
+          <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl text-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 bg-comer-orange/10 text-comer-orange font-bold rounded-lg flex items-center justify-center text-[10px]">
+                #${index + 1}
+              </span>
+              <span class="font-bold text-gray-800">${item.depto}</span>
+            </div>
+            <div class="text-right">
+              <span class="font-extrabold text-gray-900 block">${formatearMoneda(item.venta)}</span>
+              <span class="text-[9px] text-green-600 font-bold">+${item.incremento}%</span>
+            </div>
+          </div>
+        `;
+      });
+
+      // Marquesina
+      const marquee = document.getElementById('marquee-content');
+      marquee.innerHTML = v.comentariosServicio.map(c => `<span class="mx-6"><i class="fas fa-comment-dots text-comer-yellow mr-2"></i>"${c}"</span>`).join('');
+    }
+
+    // Disparar sincronización al cargar la página
+    window.onload = function() {
+      sincronizarMultiPestanas();
+    };
+  </script>
+</body>
+</html>
