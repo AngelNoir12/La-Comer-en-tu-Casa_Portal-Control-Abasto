@@ -201,7 +201,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* Botón Perfil Circular con la imagen del Pelícano sin fondo blanco */
+        /* Botón Perfil Circular con diseño de Pelícano integrado */
         .profile-container {
             position: relative;
         }
@@ -219,7 +219,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             transition: transform 0.2s, box-shadow 0.2s;
             overflow: hidden;
-            padding: 0;
+            padding: 4px;
         }
 
         .profile-btn:hover {
@@ -227,13 +227,10 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
-        .profile-btn img {
+        .profile-btn svg {
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-            /* Esto ayuda a recortar perfectamente el círculo y unificar el fondo */
-            mix-blend-mode: multiply;
+            fill: var(--mexican-pink);
         }
 
         .profile-dropdown {
@@ -366,7 +363,7 @@
             left: 0;
             width: 100%;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.2); /* Fondo sutilmente tenue */
             display: none;
             z-index: 999;
         }
@@ -458,9 +455,12 @@
             </div>
 
             <div class="profile-container">
-                <!-- Botón de perfil integrado con la imagen del pelícano proporcionada -->
+                <!-- Botón de perfil con el icono vectorial del pelícano optimizado y sin errores de carga -->
                 <button class="profile-btn" id="profileToggle" aria-label="Menú de Perfil">
-                    <img src="https://i.ibb.co/3ykVw56h/1000564339.jpg" alt="Perfil Pelícano">
+                    <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M256 32C132.3 32 32 132.3 32 256s100.3 224 224 224 224-100.3 224-224S379.7 32 256 32zm82.4 153.2c-6.8 2.2-14.1-1.6-16.3-8.4-3.1-9.7-12-16.4-22.3-16.4-9.1 0-17.3 5.4-21 13.9-3.2 7.4-11.8 10.9-19.2 7.7-7.4-3.2-10.9-11.8-7.7-19.2 7.8-18.1 24.3-29.9 43.1-29.9 22.8 0 42.4 14.8 48.7 34.5 2.3 6.8-1.5 14.1-8.3 16.4zm-92.4 46c-20.2 0-36.6 16.4-36.6 36.6 0 16.5 11 30.6 26.2 35.1 11.2 3.3 22.8 1.4 32.5-5.2l29.4 29.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-29.4-29.4c6.6-9.7 8.5-21.3 5.2-32.5-4.5-15.2-18.6-26.2-35.1-26.2h-27.5z"/>
+                        <path d="M362.7 202.6c-13.9-10.3-31-15.7-48.4-15.5-35.2.3-64.8 28.5-66.7 63.8-1.2 23 9.4 44.5 28.3 57.3l-25.2 60.5c-4.1 9.9-.4 21.4 9.5 25.5 9.9 4.1 21.4.4 25.5-9.5l22.9-54.9c13.7 5.7 29.5 5.5 43-.7 23.3-10.6 38.3-34.1 38.3-59.8 0-14.5-4.9-28.5-13.9-39.7z"/>
+                    </svg>
                 </button>
 
                 <div class="profile-dropdown" id="profileDropdown">
@@ -611,7 +611,7 @@
         function toggleMenu() {
             if (profileDropdown) profileDropdown.classList.remove('active');
             if (sidebar) sidebar.classList.toggle('active');
-            if (overlay) overlay.classList.toggle('active');
+            if (overlay) overlay.classList.toggle('active', sidebar.classList.contains('active'));
         }
 
         if (menuToggle) {
