@@ -32,7 +32,7 @@
             min-height: 100vh;
         }
 
-        /* Login */
+        /* Pantalla de Login */
         .login-wrapper {
             display: flex;
             justify-content: center;
@@ -201,6 +201,7 @@
             letter-spacing: 0.5px;
         }
 
+        /* Botón Perfil con Pelícano */
         .profile-container {
             position: relative;
         }
@@ -289,6 +290,7 @@
             color: #5f6368;
         }
 
+        /* Sidebar hamburguesa */
         .sidebar {
             position: fixed;
             top: 0;
@@ -506,4 +508,231 @@
                     <p style="margin-top: 8px; color: #5f6368;">N° Empleado: <span id="userEmpDisplay"></span></p>
                     <p style="color: #5f6368;">Departamento: <span id="userDeptoDisplay"></span></p>
 
-                    <div id="adminBadge" style="display:none; background: #e6f4ea; color: #137333
+                    <div id="adminBadge" style="display:none; background: #e6f4ea; color: #137333; padding: 10px; border-radius: 8px; margin: 15px 0; font-weight: bold; font-size: 14px;">
+                        🛡️ Modo Administrador Activado
+                    </div>
+
+                    <p class="success" style="margin-top: 15px;">Acceso autorizado correctamente por la base de datos.</p>
+                    <button onclick="location.reload()" class="btn-logout" style="width: auto; padding: 10px 20px;">Cerrar Sesión</button>
+                </div>
+            </div>
+
+            <div id="pane-departamento" class="section-pane">
+                <div class="content-card">
+                    <h2>Mi departamento</h2>
+                    <p style="margin-top: 10px; color: #5f6368;">Gestión, tareas y control operativo del departamento asignado.</p>
+                </div>
+            </div>
+
+            <div id="pane-indicadores" class="section-pane">
+                <div class="content-card">
+                    <h2>Indicadores</h2>
+                    <p style="margin-top: 10px; color: #5f6368;">Panel de métricas, rendimiento y cumplimiento.</p>
+                </div>
+            </div>
+
+            <div id="pane-reportes" class="section-pane">
+                <div class="content-card">
+                    <h2>Reportes</h2>
+                    <p style="margin-top: 10px; color: #5f6368;">Consulta de reportes comparativos y archivos de control.</p>
+                </div>
+            </div>
+
+            <div id="pane-saber-mas" class="section-pane">
+                <div class="content-card">
+                    <h2>Saber más</h2>
+                    <p style="margin-top: 10px; color: #5f6368;">Documentación de procesos, manuales y políticas de operación.</p>
+                </div>
+            </div>
+
+            <div id="pane-ayuda" class="section-pane">
+                <div class="content-card">
+                    <h2>Ayuda</h2>
+                    <p style="margin-top: 10px; color: #5f6368;">Canales de soporte técnico y asistencia del portal.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyc7tXRLUR4aiguUk2mq-liDOyG8irBb8tRVG8bmoayNspMvSjkhh_eIghTNx-S9D0HwQ/exec";
+
+        const form = document.getElementById('accessForm');
+        const mensajeAlerta = document.getElementById('mensajeAlerta');
+        const loginSection = document.getElementById('login-section');
+        const dashboard = document.getElementById('dashboard');
+        
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const userEmpDisplay = document.getElementById('userEmpDisplay');
+        const userDeptoDisplay = document.getElementById('userDeptoDisplay');
+        const adminBadge = document.getElementById('adminBadge');
+        const btnIngresar = document.getElementById('btnIngresar');
+        const selectDepartamento = document.getElementById('departamento');
+
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const menuToggle = document.getElementById('menuToggle');
+        const headerTitleDisplay = document.getElementById('headerTitleDisplay');
+
+        const profileToggle = document.getElementById('profileToggle');
+        const profileDropdown = document.getElementById('profileDropdown');
+
+        const profileName = document.getElementById('profileName');
+        const profileEmp = document.getElementById('profileEmp');
+        const profileDept = document.getElementById('profileDept');
+        const profileRango = document.getElementById('profileRango');
+
+        async function cargarDepartamentos() {
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getDepartamentos`);
+                const result = await response.json();
+                
+                if (result && result.departments && result.departments.length > 0) {
+                    selectDepartamento.innerHTML = '<option value="" disabled selected>Seleccione su departamento</option>';
+                    result.departments.forEach(depto => {
+                        const option = document.createElement('option');
+                        option.value = depto;
+                        option.textContent = depto;
+                        selectDepartamento.appendChild(option);
+                    });
+                } else {
+                    selectDepartamento.innerHTML = '<option value="" disabled selected>No se encontraron departamentos</option>';
+                }
+            } catch (error) {
+                console.error("Error al cargar departamentos:", error);
+                selectDepartamento.innerHTML = '<option value="" disabled selected>Error al cargar lista</option>';
+            }
+        }
+
+        cargarDepartamentos();
+
+        function toggleMenu() {
+            if (profileDropdown) profileDropdown.classList.remove('active');
+            if (sidebar) sidebar.classList.toggle('active');
+            if (overlay) overlay.classList.toggle('active');
+        }
+
+        if (menuToggle) {
+            menuToggle.addEventListener('click', toggleMenu);
+        }
+
+        if (profileToggle) {
+            profileToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (sidebar) sidebar.classList.remove('active');
+                if (profileDropdown) profileDropdown.classList.toggle('active');
+                if (overlay) overlay.classList.toggle('active', profileDropdown.classList.contains('active'));
+            });
+        }
+
+        function cerrarTodo() {
+            if (sidebar) sidebar.classList.remove('active');
+            if (profileDropdown) profileDropdown.classList.remove('active');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        function cambiarSeccion(nombreSeccion, tituloFranja, elementoMenu) {
+            const items = document.querySelectorAll('.menu-item');
+            items.forEach(item => item.classList.remove('selected'));
+
+            if (elementoMenu) elementoMenu.classList.add('selected');
+            if (headerTitleDisplay) headerTitleDisplay.textContent = tituloFranja;
+
+            const panes = document.querySelectorAll('.section-pane');
+            panes.forEach(pane => pane.classList.remove('active'));
+
+            const paneActivo = document.getElementById(`pane-${nombreSeccion}`);
+            if (paneActivo) {
+                paneActivo.classList.add('active');
+            }
+
+            cerrarTodo();
+        }
+
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const numEmpleadoField = document.getElementById('empleado');
+                const nombreField = document.getElementById('nombre');
+                
+                if (!numEmpleadoField || !nombreField || !selectDepartamento) return;
+
+                const numEmpleado = numEmpleadoField.value.trim();
+                const nombre = nombreField.value.trim();
+                const departamento = selectDepartamento.value;
+
+                const regex9Digitos = /^[0-9]{9}$/;
+                if (!regex9Digitos.test(numEmpleado)) {
+                    if (mensajeAlerta) {
+                        mensajeAlerta.textContent = "El N° de Empleado debe contener exactamente 9 dígitos numéricos.";
+                        mensajeAlerta.className = "mensaje error";
+                    }
+                    return;
+                }
+
+                if (!departamento) {
+                    if (mensajeAlerta) {
+                        mensajeAlerta.textContent = "Por favor seleccione un departamento válido.";
+                        mensajeAlerta.className = "mensaje error";
+                    }
+                    return;
+                }
+
+                if (mensajeAlerta) {
+                    mensajeAlerta.textContent = "Verificando credenciales...";
+                    mensajeAlerta.className = "mensaje";
+                }
+                if (btnIngresar) btnIngresar.disabled = true;
+
+                const urlFinal = `${WEB_APP_URL}?nombre=${encodeURIComponent(nombre)}&departamento=${encodeURIComponent(departamento)}`;
+
+                try {
+                    const response = await fetch(urlFinal);
+                    const result = await response.json();
+
+                    if (result && result.access) {
+                        if (mensajeAlerta) mensajeAlerta.textContent = "";
+                        if (loginSection) loginSection.style.display = "none";
+                        if (dashboard) dashboard.style.display = "block";
+                        
+                        if (userNameDisplay) userNameDisplay.textContent = nombre;
+                        if (userEmpDisplay) userEmpDisplay.textContent = numEmpleado;
+                        if (userDeptoDisplay) userDeptoDisplay.textContent = departamento;
+
+                        if (profileName) profileName.textContent = nombre;
+                        if (profileEmp) profileEmp.textContent = numEmpleado;
+                        if (profileDept) profileDept.textContent = departamento;
+
+                        if (result.isAdmin) {
+                            if (adminBadge) adminBadge.style.display = "block";
+                            if (profileRango) {
+                                profileRango.textContent = "🛡️ Administrador";
+                                profileRango.className = "badge-rango badge-admin";
+                            }
+                        } else {
+                            if (profileRango) {
+                                profileRango.textContent = "👤 Usuario Estándar";
+                                profileRango.className = "badge-rango badge-user";
+                            }
+                        }
+                    } else {
+                        if (mensajeAlerta) {
+                            mensajeAlerta.textContent = (result && result.message) ? result.message : "Acceso denegado. Verifique sus datos.";
+                            mensajeAlerta.className = "mensaje error";
+                        }
+                        if (btnIngresar) btnIngresar.disabled = false;
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    if (mensajeAlerta) {
+                        mensajeAlerta.textContent = "Error de conexión con el servidor.";
+                        mensajeAlerta.className = "mensaje error";
+                    }
+                    if (btnIngresar) btnIngresar.disabled = false;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
