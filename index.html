@@ -11,23 +11,35 @@
             --success-bg: #e6f4ea;
             --success-color: #137333;
             --error-color: #c5221f;
-            --bg-color: rgba(228, 0, 124, 0.3); /* Rosa mexicano al 30% de transparencia */
+            /* Rosa mexicano al 30% de transparencia */
+            --bg-color: rgba(228, 0, 124, 0.3);
             --card-bg: #ffffff;
             --text-color: #202124;
             --label-color: #5f6368;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             font-family: 'Arial', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        /* ----------------------------------
+           PANTALLA DE LOGIN
+        ---------------------------------- */
+        .login-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
             padding: 20px;
-            box-sizing: border-box;
         }
 
         .login-card {
@@ -37,11 +49,9 @@
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
             width: 100%;
             max-width: 400px;
-            box-sizing: border-box;
             text-align: center;
         }
 
-        /* Regla de diseño: Contenedor naranja con LCC en su interior */
         .logo-container {
             display: inline-block;
             background-color: var(--primary-orange);
@@ -58,7 +68,7 @@
         h1 {
             font-size: 20px;
             color: #111;
-            margin: 0 0 5px 0;
+            margin-bottom: 5px;
             font-weight: 700;
         }
 
@@ -84,7 +94,6 @@
             gap: 6px;
             margin-bottom: 25px;
             width: 100%;
-            box-sizing: border-box;
         }
 
         .form-group {
@@ -107,7 +116,6 @@
             border: 1px solid #dadce0;
             border-radius: 10px;
             font-size: 14px;
-            box-sizing: border-box;
             outline: none;
             transition: border 0.3s, box-shadow 0.3s;
             background-color: #fff;
@@ -148,25 +156,151 @@
         .error { color: var(--error-color); }
         .success { color: var(--success-color); }
 
+        /* ----------------------------------
+           PANEL PRINCIPAL / DASHBOARD
+        ---------------------------------- */
         #dashboard {
             display: none;
-            text-align: center;
+            width: 100%;
+            min-height: 100vh;
         }
 
-        .btn-secondary {
-            background-color: #5f6368;
-            margin-top: 20px;
+        /* Encabezado Franja Naranja */
+        .header-bar {
+            background-color: var(--primary-orange);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+            position: relative;
+            z-index: 100;
         }
-        .btn-secondary:hover {
-            background-color: #484c50;
+
+        /* Botón Menú Hamburguesa (Lado Izquierdo) */
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 26px;
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+        }
+
+        .header-title {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        /* Menú Desplegable Lateral (Sidebar Blanco) */
+        .sidebar {
+            position: fixed;
+            top: 60px;
+            left: -260px; /* Oculto por defecto */
+            width: 250px;
+            height: calc(100vh - 60px);
+            background-color: #ffffff;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+            transition: left 0.3s ease;
+            z-index: 99;
+            padding-top: 10px;
+        }
+
+        .sidebar.active {
+            left: 0; /* Desplegado */
+        }
+
+        /* Lista de Secciones del Menú */
+        .menu-list {
+            list-style: none;
+        }
+
+        .menu-item {
+            padding: 15px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            display: block;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .menu-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Estilo para la opción seleccionada (Fondo Rosa) */
+        .menu-item.selected {
+            background-color: var(--bg-color) !important;
+            color: #800046;
+            font-weight: bold;
+            border-left: 5px solid #E4007C;
+        }
+
+        /* Capa oscura de fondo al abrir menú */
+        .overlay {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            background: rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 98;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* Área de Contenido Principal */
+        .main-content {
+            padding: 25px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .content-card {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .section-pane {
+            display: none;
+        }
+
+        .section-pane.active {
+            display: block;
+        }
+
+        .btn-logout {
+            background-color: #5f6368;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
         }
     </style>
 </head>
 <body>
 
-    <div class="login-card">
-        <!-- FORMULARIO DE ACCESO -->
-        <div id="login-section">
+    <!-- 1. PANTALLA DE INICIO DE SESIÓN -->
+    <div id="login-section" class="login-wrapper">
+        <div class="login-card">
             <div class="logo-container">LC</div>
             <h1>La Comer en tu Casa</h1>
             <div class="subtitle">Portal de Control & Abasto</div>
@@ -186,7 +320,6 @@
                 </div>
                 <div class="form-group">
                     <label for="departamento">DEPARTAMENTO</label>
-                    <!-- Cambiado de input a select para lista desplegable -->
                     <select id="departamento" required>
                         <option value="" disabled selected>Cargando departamentos...</option>
                     </select>
@@ -195,25 +328,94 @@
             </form>
             <div id="mensajeAlerta" class="mensaje"></div>
         </div>
+    </div>
 
-        <!-- PANEL INTERNO -->
-        <div id="dashboard">
-            <div class="logo-container">LC</div>
-            <h2>¡Bienvenido, <span id="userNameDisplay"></span>!</h2>
-            <p>N° Empleado: <span id="userEmpDisplay"></span></p>
-            <p>Departamento: <span id="userDeptoDisplay"></span></p>
-            
-            <div id="adminBadge" style="display:none; background: #e6f4ea; color: #137333; padding: 10px; border-radius: 8px; margin: 15px 0; font-weight: bold; font-size: 14px;">
-                🛡️ Modo Administrador Activado
+    <!-- 2. PANTALLA DE INICIO DESPUÉS DEL LOGIN (DASHBOARD) -->
+    <div id="dashboard">
+        <!-- Encabezado Franja Naranja -->
+        <header class="header-bar">
+            <!-- Botón 3 líneas (Hamburguesa) -->
+            <button class="menu-btn" id="menuToggle" aria-label="Abrir Menú">☰</button>
+            <div class="header-title">Portal Control & Abasto</div>
+        </header>
+
+        <!-- Menú Desplegable Lateral -->
+        <nav class="sidebar" id="sidebar">
+            <ul class="menu-list">
+                <li class="menu-item selected" onclick="cambiarSeccion('inicio', this)">Inicio</li>
+                <li class="menu-item" onclick="cambiarSeccion('departamento', this)">Mi departamento</li>
+                <li class="menu-item" onclick="cambiarSeccion('indicadores', this)">Indicadores</li>
+                <li class="menu-item" onclick="cambiarSeccion('reportes', this)">Reportes</li>
+                <li class="menu-item" onclick="cambiarSeccion('saber-mas', this)">Saber más</li>
+                <li class="menu-item" onclick="cambiarSeccion('ayuda', this)">Ayuda</li>
+            </ul>
+        </nav>
+
+        <!-- Capa oscura para cerrar el menú al hacer clic afuera -->
+        <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+        <!-- Contenido dinámico según la sección elegida -->
+        <main class="main-content">
+            <!-- Sección: Inicio -->
+            <div id="pane-inicio" class="section-pane active">
+                <div class="content-card">
+                    <h2>¡Bienvenido, <span id="userNameDisplay"></span>!</h2>
+                    <p style="margin-top: 8px; color: #5f6368;">N° Empleado: <span id="userEmpDisplay"></span></p>
+                    <p style="color: #5f6368;">Departamento: <span id="userDeptoDisplay"></span></p>
+
+                    <div id="adminBadge" style="display:none; background: #e6f4ea; color: #137333; padding: 10px; border-radius: 8px; margin: 15px 0; font-weight: bold; font-size: 14px;">
+                        🛡️ Modo Administrador Activado
+                    </div>
+
+                    <p class="success" style="margin-top: 15px;">Acceso autorizado correctamente por la base de datos.</p>
+                    <button onclick="location.reload()" class="btn-logout">Cerrar Sesión</button>
+                </div>
             </div>
-            
-            <p class="success">Acceso autorizado correctamente por la base de datos.</p>
-            <button onclick="location.reload()" class="btn-primary btn-secondary">Cerrar Sesión</button>
-        </div>
+
+            <!-- Sección: Mi Departamento -->
+            <div id="pane-departamento" class="section-pane">
+                <div class="content-card">
+                    <h2>Mi Departamento</h2>
+                    <p style="margin-top: 10px;">Gestión e información operativa del departamento seleccionado.</p>
+                </div>
+            </div>
+
+            <!-- Sección: Indicadores -->
+            <div id="pane-indicadores" class="section-pane">
+                <div class="content-card">
+                    <h2>Indicadores</h2>
+                    <p style="margin-top: 10px;">Panel de métricas y rendimiento del sistema.</p>
+                </div>
+            </div>
+
+            <!-- Sección: Reportes -->
+            <div id="pane-reportes" class="section-pane">
+                <div class="content-card">
+                    <h2>Reportes</h2>
+                    <p style="margin-top: 10px;">Generación de reportes y descarga de archivos de control.</p>
+                </div>
+            </div>
+
+            <!-- Sección: Saber más -->
+            <div id="pane-saber-mas" class="section-pane">
+                <div class="content-card">
+                    <h2>Saber más</h2>
+                    <p style="margin-top: 10px;">Documentación y guías de uso de la plataforma La Comer en tu Casa.</p>
+                </div>
+            </div>
+
+            <!-- Sección: Ayuda -->
+            <div id="pane-ayuda" class="section-pane">
+                <div class="content-card">
+                    <h2>Ayuda y Soporte</h2>
+                    <p style="margin-top: 10px;">¿Tienes dudas? Contacta al equipo de soporte o consulta las preguntas frecuentes.</p>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        // Tu URL exacta de Apps Script
+        // URL de la API de Google Apps Script
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyc7tXRLUR4aiguUk2mq-liDOyG8irBb8tRVG8bmoayNspMvSjkhh_eIghTNx-S9D0HwQ/exec";
 
         const form = document.getElementById('accessForm');
@@ -227,7 +429,11 @@
         const btnIngresar = document.getElementById('btnIngresar');
         const selectDepartamento = document.getElementById('departamento');
 
-        // 1. Función para cargar los departamentos desde la Columna E al abrir la página
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const menuToggle = document.getElementById('menuToggle');
+
+        // Cargar menú desplegable de la Columna E al inicio
         async function cargarDepartamentos() {
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=getDepartamentos`);
@@ -250,10 +456,40 @@
             }
         }
 
-        // Ejecutar la carga al iniciar
         cargarDepartamentos();
 
-        // 2. Manejo del formulario de acceso
+        // Control de Apertura / Cierre del Menú Lateral
+        function toggleMenu() {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
+
+        menuToggle.addEventListener('click', toggleMenu);
+
+        // Cambio interactivo entre Secciones
+        function cambiarSeccion(nombreSeccion, elementoMenu) {
+            // 1. Quitar clase 'selected' de todos los ítems
+            const items = document.querySelectorAll('.menu-item');
+            items.forEach(item => item.classList.remove('selected'));
+
+            // 2. Marcar el ítem actual con el color rosa
+            elementoMenu.classList.add('selected');
+
+            // 3. Ocultar todos los paneles
+            const panes = document.querySelectorAll('.section-pane');
+            panes.forEach(pane => pane.classList.remove('active'));
+
+            // 4. Mostrar el panel correspondiente
+            const paneActivo = document.getElementById(`pane-${nombreSeccion}`);
+            if (paneActivo) {
+                paneActivo.classList.add('active');
+            }
+
+            // 5. Cerrar menú lateral en móviles
+            toggleMenu();
+        }
+
+        // Validación e Ingreso al Portal
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
