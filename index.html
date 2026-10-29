@@ -201,7 +201,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Botón Perfil Circular con diseño de Pelícano integrado */
         .profile-container {
             position: relative;
         }
@@ -290,7 +289,6 @@
             color: #5f6368;
         }
 
-        /* Sidebar hamburguesa */
         .sidebar {
             position: fixed;
             top: 0;
@@ -363,7 +361,7 @@
             left: 0;
             width: 100%;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.2); /* Fondo sutilmente tenue */
+            background: rgba(0, 0, 0, 0.2);
             display: none;
             z-index: 999;
         }
@@ -455,7 +453,6 @@
             </div>
 
             <div class="profile-container">
-                <!-- Botón de perfil con el icono vectorial del pelícano optimizado y sin errores de carga -->
                 <button class="profile-btn" id="profileToggle" aria-label="Menú de Perfil">
                     <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
                         <path d="M256 32C132.3 32 32 132.3 32 256s100.3 224 224 224 224-100.3 224-224S379.7 32 256 32zm82.4 153.2c-6.8 2.2-14.1-1.6-16.3-8.4-3.1-9.7-12-16.4-22.3-16.4-9.1 0-17.3 5.4-21 13.9-3.2 7.4-11.8 10.9-19.2 7.7-7.4-3.2-10.9-11.8-7.7-19.2 7.8-18.1 24.3-29.9 43.1-29.9 22.8 0 42.4 14.8 48.7 34.5 2.3 6.8-1.5 14.1-8.3 16.4zm-92.4 46c-20.2 0-36.6 16.4-36.6 36.6 0 16.5 11 30.6 26.2 35.1 11.2 3.3 22.8 1.4 32.5-5.2l29.4 29.4c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-29.4-29.4c6.6-9.7 8.5-21.3 5.2-32.5-4.5-15.2-18.6-26.2-35.1-26.2h-27.5z"/>
@@ -481,7 +478,7 @@
                         Rango de Acceso:
                         <div id="profileRango" class="badge-rango">-</div>
                     </div>
-                    <button onclick="location.reload()" class="btn-logout">Cerrar Sesión</button>
+                    <button onclick="cerrarSesion()" class="btn-logout">Cerrar Sesión</button>
                 </div>
             </div>
         </header>
@@ -492,12 +489,12 @@
                 <div class="sidebar-header-text">La Comer en tu Casa:<br>Control & Abasto</div>
             </div>
             <ul class="menu-list">
-                <li class="menu-item selected" onclick="cambiarSeccion('inicio', 'Inicio', this)">Inicio</li>
-                <li class="menu-item" onclick="cambiarSeccion('departamento', 'Mi departamento', this)">Mi departamento</li>
-                <li class="menu-item" onclick="cambiarSeccion('indicadores', 'Indicadores', this)">Indicadores</li>
-                <li class="menu-item" onclick="cambiarSeccion('reportes', 'Reportes', this)">Reportes</li>
-                <li class="menu-item" onclick="cambiarSeccion('saber-mas', 'Saber más', this)">Saber más</li>
-                <li class="menu-item" onclick="cambiarSeccion('ayuda', 'Ayuda', this)">Ayuda</li>
+                <li class="menu-item selected" data-section="inicio" data-title="Inicio" onclick="cambiarSeccion('inicio', 'Inicio', this)">Inicio</li>
+                <li class="menu-item" data-section="departamento" data-title="Mi departamento" onclick="cambiarSeccion('departamento', 'Mi departamento', this)">Mi departamento</li>
+                <li class="menu-item" data-section="indicadores" data-title="Indicadores" onclick="cambiarSeccion('indicadores', 'Indicadores', this)">Indicadores</li>
+                <li class="menu-item" data-section="reportes" data-title="Reportes" onclick="cambiarSeccion('reportes', 'Reportes', this)">Reportes</li>
+                <li class="menu-item" data-section="saber-mas" data-title="Saber más" onclick="cambiarSeccion('saber-mas', 'Saber más', this)">Saber más</li>
+                <li class="menu-item" data-section="ayuda" data-title="Ayuda" onclick="cambiarSeccion('ayuda', 'Ayuda', this)">Ayuda</li>
             </ul>
         </nav>
 
@@ -515,7 +512,7 @@
                     </div>
 
                     <p class="success" style="margin-top: 15px;">Acceso autorizado correctamente por la base de datos.</p>
-                    <button onclick="location.reload()" class="btn-logout" style="width: auto; padding: 10px 20px;">Cerrar Sesión</button>
+                    <button onclick="cerrarSesion()" class="btn-logout" style="width: auto; padding: 10px 20px;">Cerrar Sesión</button>
                 </div>
             </div>
 
@@ -584,6 +581,28 @@
         const profileDept = document.getElementById('profileDept');
         const profileRango = document.getElementById('profileRango');
 
+        // Variables para el control de inactividad (20 minutos)
+        let temporizadorInactividad;
+        const TIEMPO_INACTIVIDAD = 20 * 60 * 1000; // 20 minutos en milisegundos
+
+        function reiniciarTemporizadorInactividad() {
+            if (!localStorage.getItem('lcc_sesion')) return;
+            clearTimeout(temporizadorInactividad);
+            temporizadorInactividad = setTimeout(() => {
+                alert("Su sesión ha expirado por inactividad (20 minutos).");
+                cerrarSesion();
+            }, TIEMPO_INACTIVIDAD);
+        }
+
+        function iniciarControlInactividad() {
+            window.addEventListener('mousemove', reiniciarTemporizadorInactividad);
+            window.addEventListener('mousedown', reiniciarTemporizadorInactividad);
+            window.addEventListener('keypress', reiniciarTemporizadorInactividad);
+            window.addEventListener('touchstart', reiniciarTemporizadorInactividad);
+            window.addEventListener('scroll', reiniciarTemporizadorInactividad);
+            reiniciarTemporizadorInactividad();
+        }
+
         async function cargarDepartamentos() {
             try {
                 const response = await fetch(`${WEB_APP_URL}?action=getDepartamentos`);
@@ -607,6 +626,45 @@
         }
 
         cargarDepartamentos();
+
+        // Verificar sesión guardada y mantener sección activa
+        function verificarSesionGuardada() {
+            const sesionGuardada = localStorage.getItem('lcc_sesion');
+            if (sesionGuardada) {
+                const datos = JSON.parse(sesionGuardada);
+                
+                loginSection.style.display = "none";
+                dashboard.style.display = "block";
+
+                userNameDisplay.textContent = datos.nombre;
+                userEmpDisplay.textContent = datos.empleado;
+                userDeptoDisplay.textContent = datos.departamento;
+
+                profileName.textContent = datos.nombre;
+                profileEmp.textContent = datos.empleado;
+                profileDept.textContent = datos.departamento;
+
+                if (datos.isAdmin) {
+                    adminBadge.style.display = "block";
+                    profileRango.textContent = "🛡️ Administrador";
+                    profileRango.className = "badge-rango badge-admin";
+                } else {
+                    profileRango.textContent = "👤 Usuario Estándar";
+                    profileRango.className = "badge-rango badge-user";
+                }
+
+                const seccionActiva = localStorage.getItem('lcc_seccion_activa') || 'inicio';
+                const tituloActivo = localStorage.getItem('lcc_titulo_activo') || 'Inicio';
+                
+                const itemMenu = document.querySelector(`.menu-item[data-section="${seccionActiva}"]`);
+                cambiarSeccion(seccionActiva, tituloActivo, itemMenu, false);
+
+                // Activar el temporizador de inactividad
+                iniciarControlInactividad();
+            }
+        }
+
+        verificarSesionGuardada();
 
         function toggleMenu() {
             if (profileDropdown) profileDropdown.classList.remove('active');
@@ -633,11 +691,17 @@
             if (overlay) overlay.classList.remove('active');
         }
 
-        function cambiarSeccion(nombreSeccion, tituloFranja, elementoMenu) {
+        function cambiarSeccion(nombreSeccion, tituloFranja, elementoMenu, guardar = true) {
             const items = document.querySelectorAll('.menu-item');
             items.forEach(item => item.classList.remove('selected'));
 
-            if (elementoMenu) elementoMenu.classList.add('selected');
+            if (elementoMenu) {
+                elementoMenu.classList.add('selected');
+            } else {
+                const itemPorDefecto = document.querySelector(`.menu-item[data-section="${nombreSeccion}"]`);
+                if (itemPorDefecto) itemPorDefecto.classList.add('selected');
+            }
+
             if (headerTitleDisplay) headerTitleDisplay.textContent = tituloFranja;
 
             const panes = document.querySelectorAll('.section-pane');
@@ -648,7 +712,19 @@
                 paneActivo.classList.add('active');
             }
 
+            if (guardar) {
+                localStorage.setItem('lcc_seccion_activa', nombreSeccion);
+                localStorage.setItem('lcc_titulo_activo', tituloFranja);
+            }
+
             cerrarTodo();
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem('lcc_sesion');
+            localStorage.removeItem('lcc_seccion_activa');
+            localStorage.removeItem('lcc_titulo_activo');
+            location.reload();
         }
 
         if (form) {
@@ -694,30 +770,15 @@
                     const result = await response.json();
 
                     if (result && result.access) {
-                        if (mensajeAlerta) mensajeAlerta.textContent = "";
-                        if (loginSection) loginSection.style.display = "none";
-                        if (dashboard) dashboard.style.display = "block";
-                        
-                        if (userNameDisplay) userNameDisplay.textContent = nombre;
-                        if (userEmpDisplay) userEmpDisplay.textContent = numEmpleado;
-                        if (userDeptoDisplay) userDeptoDisplay.textContent = departamento;
+                        const datosSesion = {
+                            empleado: numEmpleado,
+                            nombre: nombre,
+                            departamento: departamento,
+                            isAdmin: result.isAdmin || false
+                        };
+                        localStorage.setItem('lcc_sesion', JSON.stringify(datosSesion));
 
-                        if (profileName) profileName.textContent = nombre;
-                        if (profileEmp) profileEmp.textContent = numEmpleado;
-                        if (profileDept) profileDept.textContent = departamento;
-
-                        if (result.isAdmin) {
-                            if (adminBadge) adminBadge.style.display = "block";
-                            if (profileRango) {
-                                profileRango.textContent = "🛡️ Administrador";
-                                profileRango.className = "badge-rango badge-admin";
-                            }
-                        } else {
-                            if (profileRango) {
-                                profileRango.textContent = "👤 Usuario Estándar";
-                                profileRango.className = "badge-rango badge-user";
-                            }
-                        }
+                        verificarSesionGuardada();
                     } else {
                         if (mensajeAlerta) {
                             mensajeAlerta.textContent = (result && result.message) ? result.message : "Acceso denegado. Verifique sus datos.";
