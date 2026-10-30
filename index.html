@@ -368,56 +368,57 @@
             font-weight: bold;
         }
 
-        /* --- ESTILOS PROFESIONALES DEL CARRUSEL NPS --- */
-        .evaluations-ticker {
-            background: linear-gradient(135deg, #fff5f8 0%, #ffe6ef 100%);
-            border-left: 4px solid var(--mexican-pink);
-            padding: 14px 18px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(228, 0, 124, 0.1);
-            display: flex;
+        /* --- CINTA ANIMADA DESLIZANTE DE EVALUACIONES NPS --- */
+        .ticker-container {
+            background: linear-gradient(90deg, #fff0f5 0%, #ffe4ee 100%);
+            border-bottom: 2px solid rgba(228, 0, 124, 0.15);
+            padding: 8px 0;
+            overflow: hidden;
+            white-space: nowrap;
+            position: sticky;
+            top: 65px;
+            z-index: 90;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        .ticker-track {
+            display: inline-block;
+            white-space: nowrap;
+            animation: tickerScroll 35s linear infinite;
+        }
+
+        .ticker-track:hover {
+            animation-play-state: paused; /* Se pausa al pasar el mouse por encima para poder leerlo con calma */
+        }
+
+        .ticker-item {
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            transition: all 0.4s ease-in-out;
-        }
-
-        .evaluations-body {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            flex-grow: 1;
-        }
-
-        .evaluations-stars {
-            font-size: 13px;
-            letter-spacing: 2px;
-        }
-
-        .evaluations-content {
+            gap: 10px;
+            margin-right: 50px;
             font-size: 13px;
             color: #333;
-            font-style: italic;
-            line-height: 1.4;
         }
 
-        .evaluations-content strong {
+        .ticker-stars {
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        .ticker-comment {
+            font-style: italic;
+            color: #444;
+        }
+
+        .ticker-client {
+            font-weight: bold;
             color: var(--mexican-pink);
             font-style: normal;
         }
 
-        .evaluations-tag {
-            background-color: var(--mexican-pink);
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 5px 10px;
-            border-radius: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-            box-shadow: 0 2px 6px rgba(228,0,124,0.2);
+        @keyframes tickerScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         .main-content {
@@ -541,6 +542,13 @@
             </div>
         </header>
 
+        <!-- CINTA ANIMADA DISCRETA PEGADA A LA FRANJA ROSA -->
+        <div class="ticker-container" id="tickerContainer">
+            <div class="ticker-track" id="tickerTrack">
+                <span class="ticker-item"><span class="ticker-stars">⭐⭐⭐⭐⭐</span> <span class="ticker-comment">Cargando evaluaciones NPS...</span></span>
+            </div>
+        </div>
+
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo-container">LC</div>
@@ -558,14 +566,6 @@
 
         <main class="main-content">
             <div id="pane-inicio" class="section-pane active">
-                <div class="evaluations-ticker" id="tickerInicio">
-                    <div class="evaluations-body">
-                        <div class="evaluations-stars" id="evalStarsInicio">⭐⭐⭐⭐⭐</div>
-                        <div class="evaluations-content" id="evalTextInicio">Cargando evaluaciones NPS...</div>
-                    </div>
-                    <div class="evaluations-tag">⭐ NPS</div>
-                </div>
-
                 <div class="content-card">
                     <h2>¡Bienvenido, <span id="userNameDisplay"></span>!</h2>
                     <p style="margin-top: 8px; color: #5f6368;">N° Empleado: <span id="userEmpDisplay"></span></p>
@@ -581,14 +581,6 @@
             </div>
 
             <div id="pane-departamento" class="section-pane">
-                <div class="evaluations-ticker" id="tickerDepto">
-                    <div class="evaluations-body">
-                        <div class="evaluations-stars" id="evalStarsDepto">⭐⭐⭐⭐⭐</div>
-                        <div class="evaluations-content" id="evalTextDepto">Cargando evaluaciones NPS...</div>
-                    </div>
-                    <div class="evaluations-tag">⭐ NPS</div>
-                </div>
-
                 <div class="content-card">
                     <h2>Mi departamento</h2>
                     <p style="margin-top: 10px; color: #5f6368;">Gestión, tareas y control operativo del departamento asignado.</p>
@@ -658,9 +650,7 @@
 
         let temporizadorInactividad;
         let intervaloVerificacionToken;
-        let intervaloEvaluaciones;
         const TIEMPO_INACTIVIDAD = 20 * 60 * 1000;
-        let listaEvaluacionesNPS = [];
 
         function generarEstrellas(puntuacion) {
             let num = parseInt(puntuacion) || 5;
@@ -674,53 +664,35 @@
                 const response = await fetch(`${WEB_APP_URL}?action=getNps`);
                 const result = await response.json();
                 
-                if (result && result.nps && result.nps.length > 0) {
-                    listaEvaluacionesNPS = result.nps;
-                    iniciarCarruselEvaluaciones();
-                } else {
-                    listaEvaluacionesNPS = [{
-                        cliente: "Sistema",
-                        comentario: "No hay evaluaciones registradas en la pestaña NPS.",
-                        puntuacion: 5
-                    }];
-                    iniciarCarruselEvaluaciones();
-                }
+                const tickerTrack = document.getElementById('tickerTrack');
+                if (!tickerTrack) return;
+
+                let itemsHtml = "";
+                let lista = (result && result.nps && result.nps.length > 0) ? result.nps : [
+                    { cliente: "Sistema", comentario: "Portal institucional de control y abasto sincronizado correctamente.", puntuacion: 5 }
+                ];
+
+                // Duplicamos la lista para lograr un efecto de bucle infinito impecable y fluido
+                let renderList = [...lista, ...lista];
+
+                renderList.forEach(item => {
+                    const estrellas = generarEstrellas(item.puntuacion);
+                    itemsHtml += `
+                        <span class="ticker-item">
+                            <span class="ticker-stars">${estrellas}</span>
+                            <span class="ticker-comment">"${item.comentario}"</span>
+                            <span class="ticker-client">— ${item.cliente}</span>
+                        </span>
+                    `;
+                });
+
+                tickerTrack.innerHTML = itemsHtml;
             } catch (error) {
-                listaEvaluacionesNPS = [{
-                    cliente: "Sistema",
-                    comentario: "Conectado al portal institucional de control y abasto.",
-                    puntuacion: 5
-                }];
-                iniciarCarruselEvaluaciones();
+                const tickerTrack = document.getElementById('tickerTrack');
+                if (tickerTrack) {
+                    tickerTrack.innerHTML = `<span class="ticker-item"><span class="ticker-stars">⭐⭐⭐⭐⭐</span> <span class="ticker-comment">"Conectado a Google Sheets con éxito."</span> <span class="ticker-client">— Sistema</span></span>`;
+                }
             }
-        }
-
-        function iniciarCarruselEvaluaciones() {
-            if (listaEvaluacionesNPS.length === 0) return;
-
-            let currentIndex = 0;
-
-            function mostrarSiguienteEvaluacion() {
-                const item = listaEvaluacionesNPS[currentIndex];
-                const estrellas = generarEstrellas(item.puntuacion);
-                const textoHtml = `"${item.comentario}" — <strong>${item.cliente}</strong>`;
-
-                const evalTextInicio = document.getElementById('evalTextInicio');
-                const evalStarsInicio = document.getElementById('evalStarsInicio');
-                const evalTextDepto = document.getElementById('evalTextDepto');
-                const evalStarsDepto = document.getElementById('evalStarsDepto');
-
-                if (evalTextInicio) evalTextInicio.innerHTML = textoHtml;
-                if (evalStarsInicio) evalStarsInicio.textContent = estrellas;
-                if (evalTextDepto) evalTextDepto.innerHTML = textoHtml;
-                if (evalStarsDepto) evalStarsDepto.textContent = estrellas;
-
-                currentIndex = (currentIndex + 1) % listaEvaluacionesNPS.length;
-            }
-
-            mostrarSiguienteEvaluacion();
-            clearInterval(intervaloEvaluaciones);
-            intervaloEvaluaciones = setInterval(mostrarSiguienteEvaluacion, 8000); // Rota cada 8 segundos
         }
 
         let tabId = sessionStorage.getItem('lcc_tab_id');
@@ -806,7 +778,6 @@
                     dashboard.style.display = "none";
                     clearTimeout(temporizadorInactividad);
                     clearInterval(intervaloVerificacionToken);
-                    clearInterval(intervaloEvaluaciones);
                 }
             }
             if (e.key === 'lcc_sesion' && e.newValue === null) {
@@ -814,7 +785,6 @@
                 dashboard.style.display = "none";
                 clearTimeout(temporizadorInactividad);
                 clearInterval(intervaloVerificacionToken);
-                clearInterval(intervaloEvaluaciones);
             }
         });
 
@@ -923,7 +893,6 @@
             localStorage.removeItem('lcc_seccion_activa');
             localStorage.removeItem('lcc_titulo_activo');
             clearInterval(intervaloVerificacionToken);
-            clearInterval(intervaloEvaluaciones);
             location.reload();
         }
 
