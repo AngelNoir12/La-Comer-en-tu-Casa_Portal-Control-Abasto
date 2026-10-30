@@ -368,7 +368,7 @@
             font-weight: bold;
         }
 
-        /* --- CINTA ANIMADA DESLIZANTE NO INTERACTIVA (WIDGET VISUAL) --- */
+        /* --- CINTA ANIMADA DESLIZANTE NO INTERACTIVA CON VELOCIDAD DINÁMICA --- */
         .ticker-container {
             background: linear-gradient(90deg, #fff0f5 0%, #ffe4ee 100%);
             border-bottom: 2px solid rgba(228, 0, 124, 0.15);
@@ -379,8 +379,8 @@
             top: 65px;
             z-index: 90;
             box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-            pointer-events: none; /* Evita cualquier interacción con el mouse o clics */
-            user-select: none;    /* Evita que se pueda seleccionar el texto */
+            pointer-events: none;
+            user-select: none;
         }
 
         .ticker-container.hidden {
@@ -390,8 +390,7 @@
         .ticker-track {
             display: inline-block;
             white-space: nowrap;
-            /* Eliminamos los segundos fijos aquí para que los controle JavaScript */
-            animation: tickerScroll linear infinite;
+            animation: tickerScroll 50s linear infinite; /* Valor base de respaldo por seguridad */
         }
 
         .ticker-item {
@@ -683,10 +682,17 @@
                 });
 
                 tickerTrack.innerHTML = itemsHtml;
+
+                // --- CÁLCULO DINÁMICO INTELIGENTE DE VELOCIDAD ---
+                const totalComentarios = lista.length;
+                const segundosDinamicos = Math.max(35, totalComentarios * 10); // 10 segundos por comentario para lectura suave y relajada
+                tickerTrack.style.animationDuration = segundosDinamicos + 's';
+
             } catch (error) {
                 const tickerTrack = document.getElementById('tickerTrack');
                 if (tickerTrack) {
                     tickerTrack.innerHTML = `<span class="ticker-item"><span class="ticker-stars">⭐⭐⭐⭐⭐</span> <span class="ticker-comment">"Conectado a Google Sheets con éxito."</span> <span class="ticker-client">— Sistema</span></span>`;
+                    tickerTrack.style.animationDuration = '40s';
                 }
             }
         }
@@ -875,7 +881,6 @@
                 paneActivo.classList.add('active');
             }
 
-            // --- CONTROL DE VISIBILIDAD DE LA CINTA NPS (Oculto en NPS y Casos, Saber más y Ayuda) ---
             if (tickerContainer) {
                 if (nombreSeccion === 'nps-casos' || nombreSeccion === 'saber-mas' || nombreSeccion === 'ayuda') {
                     tickerContainer.classList.add('hidden');
@@ -885,7 +890,7 @@
             }
 
             if (guardar) {
-                localStorage.setItem('lcc_seccion_activa', nombreSeccion);
+                localStorage.setItem('lcc_sesion_activa', nombreSeccion);
                 localStorage.setItem('lcc_titulo_activo', tituloFranja);
             }
 
