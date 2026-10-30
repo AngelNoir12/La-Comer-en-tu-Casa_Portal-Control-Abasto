@@ -562,6 +562,18 @@
         let temporizadorInactividad;
         const TIEMPO_INACTIVIDAD = 20 * 60 * 1000;
 
+        // --- PUNTO 1: Sincronización de sesión en pestañas múltiples ---
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'lcc_sesion') {
+                if (e.newValue === null) {
+                    localStorage.removeItem('lcc_sesion');
+                    localStorage.removeItem('lcc_seccion_activa');
+                    localStorage.removeItem('lcc_titulo_activo');
+                    location.reload();
+                }
+            }
+        });
+
         function reiniciarTemporizadorInactividad() {
             if (!localStorage.getItem('lcc_sesion')) return;
             clearTimeout(temporizadorInactividad);
