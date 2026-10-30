@@ -356,21 +356,6 @@
             font-weight: bold;
         }
 
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.3);
-            display: none;
-            z-index: 1000;
-        }
-
-        .overlay.active {
-            display: block;
-        }
-
         .main-content {
             padding: 30px 20px;
             max-width: 900px;
@@ -494,8 +479,6 @@
             </ul>
         </nav>
 
-        <div class="overlay" id="overlay" onclick="cerrarTodo()"></div>
-
         <main class="main-content">
             <div id="pane-inicio" class="section-pane active">
                 <div class="content-card">
@@ -565,7 +548,6 @@
         const selectDepartamento = document.getElementById('departamento');
 
         const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('overlay');
         const menuToggle = document.getElementById('menuToggle');
         const headerTitleDisplay = document.getElementById('headerTitleDisplay');
 
@@ -666,7 +648,6 @@
         function toggleMenu() {
             if (profileDropdown) profileDropdown.classList.remove('active');
             sidebar.classList.toggle('active');
-            overlay.classList.toggle('active', sidebar.classList.contains('active'));
         }
 
         if (menuToggle) {
@@ -678,14 +659,12 @@
                 e.stopPropagation();
                 if (sidebar) sidebar.classList.remove('active');
                 profileDropdown.classList.toggle('active');
-                overlay.classList.toggle('active', profileDropdown.classList.contains('active'));
             });
         }
 
         function cerrarTodo() {
             if (sidebar) sidebar.classList.remove('active');
             if (profileDropdown) profileDropdown.classList.remove('active');
-            if (overlay) overlay.classList.remove('active');
         }
 
         window.addEventListener('click', function(e) {
