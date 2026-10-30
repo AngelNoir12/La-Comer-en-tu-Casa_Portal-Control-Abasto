@@ -562,11 +562,43 @@
         let temporizadorInactividad;
         const TIEMPO_INACTIVIDAD = 20 * 60 * 1000;
 
-        // --- PUNTO 1: Sincronización de sesión en pestañas múltiples ---
+        // --- PUNTO 1 MEJORADO: Exclusividad de Pestaña Única y Sincronización ---
+        const tabId = 'tab_' + Math.random().toString(36.substring(2));
+
+        function verificarExclusividadTab() {
+            const sesionGuardada = localStorage.getItem('lcc_sesion');
+            if (sesionGuardada) {
+                try {
+                    const datos = JSON.parse(sesionGuardada);
+                    // Si ya hay sesión pero la pestaña actual no tiene registrado el token de pestaña activa
+                    if (!sessionStorage.getItem('lcc_active_tab')) {
+                        // Verificamos si otra pestaña ya tomó el control activo
+                        const activeTabOwner = localStorage.getItem('lcc_active_tab_owner');
+                        if (activeTabOwner && activeTabOwner !== tabId) {
+                            // Ya existe otra pestaña abierta: cerramos sesión globalmente para forzar login en la nueva
+                            localStorage.removeItem('lcc_sesion');
+                            localStorage.removeItem('lcc_seccion_activa');
+                            localStorage.removeItem('lcc_titulo_activo');
+                            localStorage.removeItem('lcc_active_tab_owner');
+                        } else {
+                            // Tomamos posesión en esta pestaña
+                            sessionStorage.setItem('lcc_active_tab', tabId);
+                            localStorage.setItem('lcc_active_tab_owner', tabId);
+                        }
+                    }
+                } catch (e) {
+                    // Error de lectura
+                }
+            }
+        }
+
+        verificarExclusividadTab();
+
         window.addEventListener('storage', function(e) {
             if (e.key === 'lcc_sesion') {
                 if (e.newValue === null) {
-                    localStorage.removeItem('lcc_sesion');
+                    sessionStorage.removeItem('lcc_active_tab');
+                    localStorage.removeItem('lcc_active_tab_owner');
                     localStorage.removeItem('lcc_seccion_activa');
                     localStorage.removeItem('lcc_titulo_activo');
                     location.reload();
@@ -715,6 +747,8 @@
         }
 
         function cerrarSesion() {
+            sessionStorage.removeItem('lcc_active_tab');
+            localStorage.removeItem('lcc_active_tab_owner');
             localStorage.removeItem('lcc_sesion');
             localStorage.removeItem('lcc_seccion_activa');
             localStorage.removeItem('lcc_titulo_activo');
@@ -771,6 +805,8 @@
                             isAdmin: result.isAdmin || false
                         };
                         localStorage.setItem('lcc_sesion', JSON.stringify(datosSesion));
+                        sessionStorage.setItem('lcc_active_tab', tabId);
+                        localStorage.setItem('lcc_active_tab_owner', tabId);
 
                         verificarSesionGuardada();
                     } else {
