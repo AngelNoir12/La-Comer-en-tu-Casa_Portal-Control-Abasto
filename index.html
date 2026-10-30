@@ -533,7 +533,7 @@
     </div>
 
     <script>
-        const WEB_APP_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5Wxmi1zJBmQNs-uzH9KtI_LfxTbezwHOSD6iNEzzzhE-LrB_cdmxICKJxq2L3Rj1qJGQsqUQvEZ2Z/pub?output=csv";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyc7tXRLUR4aiguUk2mq-liDOyG8irBb8tRVG8bmoayNspMvSjkhh_eIghTNx-S9D0HwQ/exec";
 
         const form = document.getElementById('accessForm');
         const mensajeAlerta = document.getElementById('mensajeAlerta');
@@ -562,32 +562,28 @@
         let temporizadorInactividad;
         const TIEMPO_INACTIVIDAD = 20 * 60 * 1000;
 
-        // --- PUNTO 1 MEJORADO: Exclusividad de Pestaña Única y Sincronización ---
-        const tabId = 'tab_' + Math.random().toString(36.substring(2));
+        // --- PUNTO 1: Exclusividad de Pestaña Única y Sincronización ---
+        const tabId = 'tab_' + Math.random().toString(36).substring(2);
 
         function verificarExclusividadTab() {
             const sesionGuardada = localStorage.getItem('lcc_sesion');
             if (sesionGuardada) {
                 try {
                     const datos = JSON.parse(sesionGuardada);
-                    // Si ya hay sesión pero la pestaña actual no tiene registrado el token de pestaña activa
                     if (!sessionStorage.getItem('lcc_active_tab')) {
-                        // Verificamos si otra pestaña ya tomó el control activo
                         const activeTabOwner = localStorage.getItem('lcc_active_tab_owner');
                         if (activeTabOwner && activeTabOwner !== tabId) {
-                            // Ya existe otra pestaña abierta: cerramos sesión globalmente para forzar login en la nueva
                             localStorage.removeItem('lcc_sesion');
                             localStorage.removeItem('lcc_seccion_activa');
                             localStorage.removeItem('lcc_titulo_activo');
                             localStorage.removeItem('lcc_active_tab_owner');
                         } else {
-                            // Tomamos posesión en esta pestaña
                             sessionStorage.setItem('lcc_active_tab', tabId);
                             localStorage.setItem('lcc_active_tab_owner', tabId);
                         }
                     }
                 } catch (e) {
-                    // Error de lectura
+                    // Manejo seguro de errores
                 }
             }
         }
