@@ -368,7 +368,7 @@
             font-weight: bold;
         }
 
-        /* --- CINTA ANIMADA DESLIZANTE DE EVALUACIONES NPS --- */
+        /* --- CINTA ANIMADA DESLIZANTE NO INTERACTIVA (WIDGET VISUAL) --- */
         .ticker-container {
             background: linear-gradient(90deg, #fff0f5 0%, #ffe4ee 100%);
             border-bottom: 2px solid rgba(228, 0, 124, 0.15);
@@ -379,6 +379,8 @@
             top: 65px;
             z-index: 90;
             box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            pointer-events: none; /* Evita cualquier interacción con el mouse o clics */
+            user-select: none;    /* Evita que se pueda seleccionar el texto */
         }
 
         .ticker-container.hidden {
@@ -389,10 +391,6 @@
             display: inline-block;
             white-space: nowrap;
             animation: tickerScroll 35s linear infinite;
-        }
-
-        .ticker-track:hover {
-            animation-play-state: paused;
         }
 
         .ticker-item {
@@ -535,7 +533,7 @@
             </div>
         </header>
 
-        <!-- CINTA ANIMADA DESLIZANTE DE EVALUACIONES NPS -->
+        <!-- CINTA ANIMADA DESLIZANTE NPS (WIDGET VISUAL NO INTERACTIVO) -->
         <div class="ticker-container" id="tickerContainer">
             <div class="ticker-track" id="tickerTrack">
                 <span class="ticker-item"><span class="ticker-stars">⭐⭐⭐⭐⭐</span> <span class="ticker-comment">Cargando evaluaciones NPS...</span></span>
@@ -552,6 +550,7 @@
                 <li class="menu-item" data-section="departamento" data-title="Mi departamento" onclick="cambiarSeccion('departamento', 'Mi departamento', this)">Mi departamento</li>
                 <li class="menu-item" data-section="indicadores" data-title="Indicadores" onclick="cambiarSeccion('indicadores', 'Indicadores', this)">Indicadores</li>
                 <li class="menu-item" data-section="reportes" data-title="Reportes" onclick="cambiarSeccion('reportes', 'Reportes', this)">Reportes</li>
+                <li class="menu-item" data-section="nps-casos" data-title="NPS y Casos" onclick="cambiarSeccion('nps-casos', 'NPS y Casos', this)">NPS y Casos</li>
                 <li class="menu-item" data-section="saber-mas" data-title="Saber más" onclick="cambiarSeccion('saber-mas', 'Saber más', this)">Saber más</li>
                 <li class="menu-item" data-section="ayuda" data-title="Ayuda" onclick="cambiarSeccion('ayuda', 'Ayuda', this)">Ayuda</li>
             </ul>
@@ -591,6 +590,13 @@
                 <div class="content-card">
                     <h2>Reportes</h2>
                     <p style="margin-top: 10px; color: #5f6368;">Consulta de reportes comparativos y archivos de control.</p>
+                </div>
+            </div>
+
+            <div id="pane-nps-casos" class="section-pane">
+                <div class="content-card">
+                    <h2>NPS y Casos</h2>
+                    <p style="margin-top: 10px; color: #5f6368;">Apartado reservado para la gestión y análisis de evaluaciones y casos operativos.</p>
                 </div>
             </div>
 
@@ -855,7 +861,7 @@
                 elementoMenu.classList.add('selected');
             } else {
                 const itemPorDefecto = document.querySelector(`.menu-item[data-section="${nombreSeccion}"]`);
-                if (itemPorDefector) itemPorDefecto.classList.add('selected');
+                if (itemPorDefecto) itemPorDefecto.classList.add('selected');
             }
 
             if (headerTitleDisplay) headerTitleDisplay.textContent = tituloFranja;
@@ -868,12 +874,12 @@
                 paneActivo.classList.add('active');
             }
 
-            // --- CONTROL DE VISIBILIDAD DE LA CINTA NPS SEGÚN LA SECCIÓN ---
+            // --- CONTROL DE VISIBILIDAD DE LA CINTA NPS (Oculto en NPS y Casos, Saber más y Ayuda) ---
             if (tickerContainer) {
-                if (nombreSeccion === 'saber-mas' || nombreSeccion === 'ayuda') {
-                    tickerContainer.classList.add('hidden'); // Oculto en Saber más y Ayuda
+                if (nombreSeccion === 'nps-casos' || nombreSeccion === 'saber-mas' || nombreSeccion === 'ayuda') {
+                    tickerContainer.classList.add('hidden');
                 } else {
-                    tickerContainer.classList.remove('hidden'); // Visible en cualquier otra sección actual o futura
+                    tickerContainer.classList.remove('hidden');
                 }
             }
 
