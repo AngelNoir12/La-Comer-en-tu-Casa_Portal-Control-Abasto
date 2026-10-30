@@ -368,7 +368,7 @@
             font-weight: bold;
         }
 
-        /* --- CINTA ANIMADA DESLIZANTE NO INTERACTIVA CON VELOCIDAD SUAVE --- */
+        /* --- CINTA ANIMADA DESLIZANTE NO INTERACTIVA Y LIMPIA --- */
         .ticker-container {
             background: linear-gradient(90deg, #fff0f5 0%, #ffe4ee 100%);
             border-bottom: 2px solid rgba(228, 0, 124, 0.15);
@@ -533,10 +533,10 @@
             </div>
         </header>
 
-        <!-- CINTA ANIMADA DESLIZANTE NPS (WIDGET VISUAL NO INTERACTIVO) -->
+        <!-- CINTA ANIMADA DESLIZANTE NPS (INICIA COMPLETAMENTE LIMPIA) -->
         <div class="ticker-container" id="tickerContainer">
             <div class="ticker-track" id="tickerTrack">
-                <span class="ticker-item"><span class="ticker-stars">⭐⭐⭐⭐⭐</span> <span class="ticker-comment">Cargando evaluaciones NPS...</span></span>
+                <!-- Inicia vacío sin texto de carga -->
             </div>
         </div>
 
@@ -664,9 +664,9 @@
                 if (!tickerTrack) return;
 
                 let itemsHtml = "";
-                let lista = (result && result.nps && result.nps.length > 0) ? result.nps : [
-                    { cliente: "Sistema", comentario: "Portal institucional de control y abasto sincronizado correctamente.", puntuacion: 5 }
-                ];
+                let lista = (result && result.nps && result.nps.length > 0) ? result.nps : [];
+
+                if (lista.length === 0) return; // Si no hay datos, se queda completamente limpio
 
                 let renderList = [...lista, ...lista];
 
@@ -683,17 +683,12 @@
 
                 tickerTrack.innerHTML = itemsHtml;
 
-                // --- VELOCIDAD DINÁMICA MUY SUAVE Y PAUSADA ---
                 const totalComentarios = lista.length;
-                const segundosDinamicos = Math.max(50, totalComentarios * 16); // 16 segundos por cada comentario
+                const segundosDinamicos = Math.max(50, totalComentarios * 16);
                 tickerTrack.style.animationDuration = segundosDinamicos + 's';
 
             } catch (error) {
-                const tickerTrack = document.getElementById('tickerTrack');
-                if (tickerTrack) {
-                    tickerTrack.innerHTML = `<span class="ticker-item"><span class="ticker-stars">⭐⭐⭐⭐⭐</span> <span class="ticker-comment">"Conectado a Google Sheets con éxito."</span> <span class="ticker-client">— Sistema</span></span>`;
-                    tickerTrack.style.animationDuration = '50s';
-                }
+                // Silencioso en caso de error de red para mantener limpio el widget
             }
         }
 
