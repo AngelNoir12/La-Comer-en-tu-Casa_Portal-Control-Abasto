@@ -368,7 +368,7 @@
             font-weight: bold;
         }
 
-        /* --- CINTA ANIMADA DESLIZANTE NO INTERACTIVA Y LIMPIA --- */
+        /* --- CINTA ANIMADA CON ENTRADA SUAVE DESDE LA DERECHA --- */
         .ticker-container {
             background: linear-gradient(90deg, #fff0f5 0%, #ffe4ee 100%);
             border-bottom: 2px solid rgba(228, 0, 124, 0.15);
@@ -390,6 +390,14 @@
         .ticker-track {
             display: inline-block;
             white-space: nowrap;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .ticker-track.loaded {
+            opacity: 1;
+            transform: translateX(0);
             animation: tickerScroll 80s linear infinite;
         }
 
@@ -533,11 +541,9 @@
             </div>
         </header>
 
-        <!-- CINTA ANIMADA DESLIZANTE NPS (INICIA COMPLETAMENTE LIMPIA) -->
+        <!-- CINTA ANIMADA CON ENTRADA LIMPIA DESDE LA DERECHA -->
         <div class="ticker-container" id="tickerContainer">
-            <div class="ticker-track" id="tickerTrack">
-                <!-- Inicia vacío sin texto de carga -->
-            </div>
+            <div class="ticker-track" id="tickerTrack"></div>
         </div>
 
         <nav class="sidebar" id="sidebar">
@@ -666,7 +672,7 @@
                 let itemsHtml = "";
                 let lista = (result && result.nps && result.nps.length > 0) ? result.nps : [];
 
-                if (lista.length === 0) return; // Si no hay datos, se queda completamente limpio
+                if (lista.length === 0) return;
 
                 let renderList = [...lista, ...lista];
 
@@ -687,8 +693,11 @@
                 const segundosDinamicos = Math.max(50, totalComentarios * 16);
                 tickerTrack.style.animationDuration = segundosDinamicos + 's';
 
+                // Añade la clase para animar la entrada limpia desde la derecha
+                tickerTrack.classList.add('loaded');
+
             } catch (error) {
-                // Silencioso en caso de error de red para mantener limpio el widget
+                // Silencioso en caso de error
             }
         }
 
