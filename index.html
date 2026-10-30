@@ -30,6 +30,8 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .login-wrapper {
@@ -136,13 +138,17 @@
             font-size: 15px;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.3s, transform 0.1s;
             margin-top: 10px;
             box-shadow: 0 4px 12px rgba(228, 0, 124, 0.25);
         }
 
         button.btn-primary:hover {
             background-color: var(--mexican-pink-hover);
+        }
+
+        button.btn-primary:active {
+            transform: scale(0.98);
         }
 
         .mensaje {
@@ -159,6 +165,8 @@
             display: none;
             width: 100%;
             min-height: 100vh;
+            flex-direction: column;
+            flex-grow: 1;
         }
 
         .header-bar {
@@ -345,21 +353,79 @@
             font-weight: 600;
             color: var(--text-color);
             cursor: pointer;
-            transition: background 0.2s, color 0.2s;
+            transition: background 0.2s ease, padding-left 0.2s ease;
             display: block;
         }
 
-        .menu-item:hover, 
+        .menu-item:hover {
+            background-color: var(--pink-transparent-30);
+            padding-left: 25px;
+        }
+
         .menu-item.selected {
-            background-color: var(--pink-transparent-50);
+            background-color: var(--mexican-pink);
             color: #ffffff;
             font-weight: bold;
+        }
+
+        /* --- ESTILOS PROFESIONALES DEL CARRUSEL NPS --- */
+        .evaluations-ticker {
+            background: linear-gradient(135deg, #fff5f8 0%, #ffe6ef 100%);
+            border-left: 4px solid var(--mexican-pink);
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(228, 0, 124, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            transition: all 0.4s ease-in-out;
+        }
+
+        .evaluations-body {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-grow: 1;
+        }
+
+        .evaluations-stars {
+            font-size: 13px;
+            letter-spacing: 2px;
+        }
+
+        .evaluations-content {
+            font-size: 13px;
+            color: #333;
+            font-style: italic;
+            line-height: 1.4;
+        }
+
+        .evaluations-content strong {
+            color: var(--mexican-pink);
+            font-style: normal;
+        }
+
+        .evaluations-tag {
+            background-color: var(--mexican-pink);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(228,0,124,0.2);
         }
 
         .main-content {
             padding: 30px 20px;
             max-width: 900px;
             margin: 0 auto;
+            flex-grow: 1;
+            width: 100%;
         }
 
         .content-card {
@@ -393,6 +459,17 @@
         }
         .btn-logout:hover {
             background-color: #a51a17;
+        }
+
+        .footer-copyright {
+            text-align: center;
+            padding: 15px;
+            font-size: 11px;
+            color: #70757a;
+            border-top: 1px solid #eee;
+            margin-top: auto;
+            background-color: #ffffff;
+            letter-spacing: 0.3px;
         }
     </style>
 </head>
@@ -481,6 +558,14 @@
 
         <main class="main-content">
             <div id="pane-inicio" class="section-pane active">
+                <div class="evaluations-ticker" id="tickerInicio">
+                    <div class="evaluations-body">
+                        <div class="evaluations-stars" id="evalStarsInicio">⭐⭐⭐⭐⭐</div>
+                        <div class="evaluations-content" id="evalTextInicio">Cargando evaluaciones NPS...</div>
+                    </div>
+                    <div class="evaluations-tag">⭐ NPS</div>
+                </div>
+
                 <div class="content-card">
                     <h2>¡Bienvenido, <span id="userNameDisplay"></span>!</h2>
                     <p style="margin-top: 8px; color: #5f6368;">N° Empleado: <span id="userEmpDisplay"></span></p>
@@ -496,6 +581,14 @@
             </div>
 
             <div id="pane-departamento" class="section-pane">
+                <div class="evaluations-ticker" id="tickerDepto">
+                    <div class="evaluations-body">
+                        <div class="evaluations-stars" id="evalStarsDepto">⭐⭐⭐⭐⭐</div>
+                        <div class="evaluations-content" id="evalTextDepto">Cargando evaluaciones NPS...</div>
+                    </div>
+                    <div class="evaluations-tag">⭐ NPS</div>
+                </div>
+
                 <div class="content-card">
                     <h2>Mi departamento</h2>
                     <p style="margin-top: 10px; color: #5f6368;">Gestión, tareas y control operativo del departamento asignado.</p>
@@ -530,6 +623,10 @@
                 </div>
             </div>
         </main>
+
+        <footer class="footer-copyright">
+            Portal Institucional de Control & Abasto &bull; Desarrollado para Operaciones Logísticas
+        </footer>
     </div>
 
     <script>
@@ -561,7 +658,70 @@
 
         let temporizadorInactividad;
         let intervaloVerificacionToken;
+        let intervaloEvaluaciones;
         const TIEMPO_INACTIVIDAD = 20 * 60 * 1000;
+        let listaEvaluacionesNPS = [];
+
+        function generarEstrellas(puntuacion) {
+            let num = parseInt(puntuacion) || 5;
+            if (num < 1) num = 1;
+            if (num > 5) num = 5;
+            return "⭐".repeat(num);
+        }
+
+        async function cargarEvaluacionesNPS() {
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getNps`);
+                const result = await response.json();
+                
+                if (result && result.nps && result.nps.length > 0) {
+                    listaEvaluacionesNPS = result.nps;
+                    iniciarCarruselEvaluaciones();
+                } else {
+                    listaEvaluacionesNPS = [{
+                        cliente: "Sistema",
+                        comentario: "No hay evaluaciones registradas en la pestaña NPS.",
+                        puntuacion: 5
+                    }];
+                    iniciarCarruselEvaluaciones();
+                }
+            } catch (error) {
+                listaEvaluacionesNPS = [{
+                    cliente: "Sistema",
+                    comentario: "Conectado al portal institucional de control y abasto.",
+                    puntuacion: 5
+                }];
+                iniciarCarruselEvaluaciones();
+            }
+        }
+
+        function iniciarCarruselEvaluaciones() {
+            if (listaEvaluacionesNPS.length === 0) return;
+
+            let currentIndex = 0;
+
+            function mostrarSiguienteEvaluacion() {
+                const item = listaEvaluacionesNPS[currentIndex];
+                const estrellas = generarEstrellas(item.puntuacion);
+                const textoHtml = `"${item.comentario}" — <strong>${item.cliente}</strong>`;
+
+                const evalTextInicio = document.getElementById('evalTextInicio');
+                const evalStarsInicio = document.getElementById('evalStarsInicio');
+                const evalTextDepto = document.getElementById('evalTextDepto');
+                const evalStarsDepto = document.getElementById('evalStarsDepto');
+
+                if (evalTextInicio) evalTextInicio.innerHTML = textoHtml;
+                if (evalStarsInicio) evalStarsInicio.textContent = estrellas;
+                if (evalTextDepto) evalTextDepto.innerHTML = textoHtml;
+                if (evalStarsDepto) evalStarsDepto.textContent = estrellas;
+
+                currentIndex = (currentIndex + 1) % listaEvaluacionesNPS.length;
+            }
+
+            mostrarSiguienteEvaluacion();
+            clearInterval(intervaloEvaluaciones);
+            intervaloEvaluaciones = setInterval(mostrarSiguienteEvaluacion, 8000); // Rota cada 8 segundos
+        }
 
         let tabId = sessionStorage.getItem('lcc_tab_id');
         if (!tabId) {
@@ -584,14 +744,11 @@
                     alert("Su sesión ha sido abierta en otro dispositivo. Este equipo ha sido cerrado.");
                     cerrarSesion();
                 }
-            } catch (e) {
-                // Error de red silencioso para no interrumpir operación en caso de breve fallo de internet
-            }
+            } catch (e) {}
         }
 
         function iniciarVerificacionRemota() {
             clearInterval(intervaloVerificacionToken);
-            // Revisa cada 30 segundos si la sesión sigue siendo la única activa en el servidor
             intervaloVerificacionToken = setInterval(verificarValidezSesionRemota, 30000);
         }
 
@@ -604,7 +761,7 @@
                     const datos = JSON.parse(sesionGuardada);
                     
                     loginSection.style.display = "none";
-                    dashboard.style.display = "block";
+                    dashboard.style.display = "flex";
 
                     userNameDisplay.textContent = datos.nombre;
                     userEmpDisplay.textContent = datos.empleado;
@@ -631,6 +788,7 @@
 
                     iniciarControlInactividad();
                     iniciarVerificacionRemota();
+                    cargarEvaluacionesNPS();
                 } catch (e) {
                     localStorage.removeItem('lcc_sesion');
                 }
@@ -648,6 +806,7 @@
                     dashboard.style.display = "none";
                     clearTimeout(temporizadorInactividad);
                     clearInterval(intervaloVerificacionToken);
+                    clearInterval(intervaloEvaluaciones);
                 }
             }
             if (e.key === 'lcc_sesion' && e.newValue === null) {
@@ -655,6 +814,7 @@
                 dashboard.style.display = "none";
                 clearTimeout(temporizadorInactividad);
                 clearInterval(intervaloVerificacionToken);
+                clearInterval(intervaloEvaluaciones);
             }
         });
 
@@ -693,7 +853,6 @@
                     selectDepartamento.innerHTML = '<option value="" disabled selected>No se encontraron departamentos</option>';
                 }
             } catch (error) {
-                console.error("Error al cargar departamentos:", error);
                 selectDepartamento.innerHTML = '<option value="" disabled selected>Error al cargar lista</option>';
             }
         }
@@ -764,6 +923,7 @@
             localStorage.removeItem('lcc_seccion_activa');
             localStorage.removeItem('lcc_titulo_activo');
             clearInterval(intervaloVerificacionToken);
+            clearInterval(intervaloEvaluaciones);
             location.reload();
         }
 
@@ -798,14 +958,15 @@
                 }
 
                 if (mensajeAlerta) {
-                    mensajeAlerta.textContent = "Verificando credenciales...";
+                    mensajeAlerta.textContent = "Verificando credenciales con el servidor...";
                     mensajeAlerta.className = "mensaje";
                 }
-                if (btnIngresar) btnIngresar.disabled = true;
+                if (btnIngresar) {
+                    btnIngresar.disabled = true;
+                    btnIngresar.textContent = "Verificando acceso...";
+                }
 
-                // Generamos un token de sesión único por cada nuevo inicio de sesión global
                 const sessionToken = 'token_' + Math.random().toString(36).substring(2) + '_' + Date.now();
-
                 const urlFinal = `${WEB_APP_URL}?nombre=${encodeURIComponent(nombre)}&departamento=${encodeURIComponent(departamento)}&sessionToken=${encodeURIComponent(sessionToken)}`;
 
                 try {
@@ -830,15 +991,20 @@
                             mensajeAlerta.textContent = (result && result.message) ? result.message : "Acceso denegado. Verifique sus datos.";
                             mensajeAlerta.className = "mensaje error";
                         }
-                        if (btnIngresar) btnIngresar.disabled = false;
+                        if (btnIngresar) {
+                            btnIngresar.disabled = false;
+                            btnIngresar.textContent = "Ingresar al Portal →";
+                        }
                     }
                 } catch (error) {
-                    console.error("Error:", error);
                     if (mensajeAlerta) {
                         mensajeAlerta.textContent = "Error de conexión con el servidor.";
                         mensajeAlerta.className = "mensaje error";
                     }
-                    if (btnIngresar) btnIngresar.disabled = false;
+                    if (btnIngresar) {
+                        btnIngresar.disabled = false;
+                        btnIngresar.textContent = "Ingresar al Portal →";
+                    }
                 }
             });
         }
