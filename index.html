@@ -381,6 +381,10 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.04);
         }
 
+        .ticker-container.hidden {
+            display: none;
+        }
+
         .ticker-track {
             display: inline-block;
             white-space: nowrap;
@@ -388,7 +392,7 @@
         }
 
         .ticker-track:hover {
-            animation-play-state: paused; /* Se pausa al pasar el mouse por encima para poder leerlo con calma */
+            animation-play-state: paused;
         }
 
         .ticker-item {
@@ -461,17 +465,6 @@
         .btn-logout:hover {
             background-color: #a51a17;
         }
-
-        .footer-copyright {
-            text-align: center;
-            padding: 15px;
-            font-size: 11px;
-            color: #70757a;
-            border-top: 1px solid #eee;
-            margin-top: auto;
-            background-color: #ffffff;
-            letter-spacing: 0.3px;
-        }
     </style>
 </head>
 <body>
@@ -542,7 +535,7 @@
             </div>
         </header>
 
-        <!-- CINTA ANIMADA DISCRETA PEGADA A LA FRANJA ROSA -->
+        <!-- CINTA ANIMADA DESLIZANTE DE EVALUACIONES NPS -->
         <div class="ticker-container" id="tickerContainer">
             <div class="ticker-track" id="tickerTrack">
                 <span class="ticker-item"><span class="ticker-stars">⭐⭐⭐⭐⭐</span> <span class="ticker-comment">Cargando evaluaciones NPS...</span></span>
@@ -615,10 +608,6 @@
                 </div>
             </div>
         </main>
-
-        <footer class="footer-copyright">
-            Portal Institucional de Control & Abasto &bull; Desarrollado para Operaciones Logísticas
-        </footer>
     </div>
 
     <script>
@@ -647,6 +636,7 @@
         const profileEmp = document.getElementById('profileEmp');
         const profileDept = document.getElementById('profileDept');
         const profileRango = document.getElementById('profileRango');
+        const tickerContainer = document.getElementById('tickerContainer');
 
         let temporizadorInactividad;
         let intervaloVerificacionToken;
@@ -672,7 +662,6 @@
                     { cliente: "Sistema", comentario: "Portal institucional de control y abasto sincronizado correctamente.", puntuacion: 5 }
                 ];
 
-                // Duplicamos la lista para lograr un efecto de bucle infinito impecable y fluido
                 let renderList = [...lista, ...lista];
 
                 renderList.forEach(item => {
@@ -866,7 +855,7 @@
                 elementoMenu.classList.add('selected');
             } else {
                 const itemPorDefecto = document.querySelector(`.menu-item[data-section="${nombreSeccion}"]`);
-                if (itemPorDefecto) itemPorDefecto.classList.add('selected');
+                if (itemPorDefector) itemPorDefecto.classList.add('selected');
             }
 
             if (headerTitleDisplay) headerTitleDisplay.textContent = tituloFranja;
@@ -877,6 +866,15 @@
             const paneActivo = document.getElementById(`pane-${nombreSeccion}`);
             if (paneActivo) {
                 paneActivo.classList.add('active');
+            }
+
+            // --- CONTROL DE VISIBILIDAD DE LA CINTA NPS SEGÚN LA SECCIÓN ---
+            if (tickerContainer) {
+                if (nombreSeccion === 'saber-mas' || nombreSeccion === 'ayuda') {
+                    tickerContainer.classList.add('hidden'); // Oculto en Saber más y Ayuda
+                } else {
+                    tickerContainer.classList.remove('hidden'); // Visible en cualquier otra sección actual o futura
+                }
             }
 
             if (guardar) {
