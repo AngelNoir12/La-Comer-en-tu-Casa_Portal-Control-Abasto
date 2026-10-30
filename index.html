@@ -390,7 +390,8 @@
         .ticker-track {
             display: inline-block;
             white-space: nowrap;
-            animation: tickerScroll 70s linear infinite; /* Subimos a 70s para una velocidad sumamente suave y neutral */
+            /* Eliminamos los segundos fijos aquí para que los controle JavaScript */
+            animation: tickerScroll linear infinite;
         }
 
         .ticker-item {
