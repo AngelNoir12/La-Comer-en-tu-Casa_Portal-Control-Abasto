@@ -560,50 +560,106 @@
         const profileRango = document.getElementById('profileRango');
 
         let temporizadorInactividad;
+        let intervaloVerificacionToken;
         const TIEMPO_INACTIVIDAD = 20 * 60 * 1000;
 
-        // --- PUNTO 1: Exclusividad de Pestaña Única y Sincronización ---
-        const tabId = 'tab_' + Math.random().toString(36).substring(2);
+        let tabId = sessionStorage.getItem('lcc_tab_id');
+        if (!tabId) {
+            tabId = 'tab_' + Math.random().toString(36).substring(2);
+            sessionStorage.setItem('lcc_tab_id', tabId);
+        }
 
-        function verificarExclusividadTab() {
+        async function verificarValidezSesionRemota() {
             const sesionGuardada = localStorage.getItem('lcc_sesion');
-            if (sesionGuardada) {
-                try {
-                    const datos = JSON.parse(sesionGuardada);
-                    if (!sessionStorage.getItem('lcc_active_tab')) {
-                        const activeTabOwner = localStorage.getItem('lcc_active_tab_owner');
-                        if (activeTabOwner && activeTabOwner !== tabId) {
-                            localStorage.removeItem('lcc_sesion');
-                            localStorage.removeItem('lcc_seccion_activa');
-                            localStorage.removeItem('lcc_titulo_activo');
-                            localStorage.removeItem('lcc_active_tab_owner');
-                        } else {
-                            sessionStorage.setItem('lcc_active_tab', tabId);
-                            localStorage.setItem('lcc_active_tab_owner', tabId);
-                        }
-                    }
-                } catch (e) {
-                    // Manejo seguro de errores
+            if (!sesionGuardada) return;
+
+            try {
+                const datos = JSON.parse(sesionGuardada);
+                if (!datos.sessionToken) return;
+
+                const response = await fetch(`${WEB_APP_URL}?action=verificarSesion&empleado=${encodeURIComponent(datos.empleado)}&token=${encodeURIComponent(datos.sessionToken)}`);
+                const result = await response.json();
+
+                if (result && result.active === false) {
+                    alert("Su sesión ha sido abierta en otro dispositivo. Este equipo ha sido cerrado.");
+                    cerrarSesion();
                 }
+            } catch (e) {
+                // Error de red silencioso para no interrumpir operación en caso de breve fallo de internet
             }
         }
 
-        verificarExclusividadTab();
+        function iniciarVerificacionRemota() {
+            clearInterval(intervaloVerificacionToken);
+            // Revisa cada 30 segundos si la sesión sigue siendo la única activa en el servidor
+            intervaloVerificacionToken = setInterval(verificarValidezSesionRemota, 30000);
+        }
+
+        function verificarSesionGuardada() {
+            const sesionGuardada = localStorage.getItem('lcc_sesion');
+            const activeOwner = localStorage.getItem('lcc_active_tab_owner');
+
+            if (sesionGuardada && activeOwner === tabId) {
+                try {
+                    const datos = JSON.parse(sesionGuardada);
+                    
+                    loginSection.style.display = "none";
+                    dashboard.style.display = "block";
+
+                    userNameDisplay.textContent = datos.nombre;
+                    userEmpDisplay.textContent = datos.empleado;
+                    userDeptoDisplay.textContent = datos.departamento;
+
+                    profileName.textContent = datos.nombre;
+                    profileEmp.textContent = datos.empleado;
+                    profileDept.textContent = datos.departamento;
+
+                    if (datos.isAdmin) {
+                        adminBadge.style.display = "block";
+                        profileRango.textContent = "🛡️ Administrador";
+                        profileRango.className = "badge-rango badge-admin";
+                    } else {
+                        profileRango.textContent = "👤 Usuario Estándar";
+                        profileRango.className = "badge-rango badge-user";
+                    }
+
+                    const seccionActiva = localStorage.getItem('lcc_seccion_activa') || 'inicio';
+                    const tituloActivo = localStorage.getItem('lcc_titulo_activo') || 'Inicio';
+                    
+                    const itemMenu = document.querySelector(`.menu-item[data-section="${seccionActiva}"]`);
+                    cambiarSeccion(seccionActiva, tituloActivo, itemMenu, false);
+
+                    iniciarControlInactividad();
+                    iniciarVerificacionRemota();
+                } catch (e) {
+                    localStorage.removeItem('lcc_sesion');
+                }
+            } else {
+                loginSection.style.display = "flex";
+                dashboard.style.display = "none";
+            }
+        }
 
         window.addEventListener('storage', function(e) {
-            if (e.key === 'lcc_sesion') {
-                if (e.newValue === null) {
-                    sessionStorage.removeItem('lcc_active_tab');
-                    localStorage.removeItem('lcc_active_tab_owner');
-                    localStorage.removeItem('lcc_seccion_activa');
-                    localStorage.removeItem('lcc_titulo_activo');
-                    location.reload();
+            if (e.key === 'lcc_active_tab_owner') {
+                const newOwner = e.newValue;
+                if (newOwner && newOwner !== tabId) {
+                    loginSection.style.display = "flex";
+                    dashboard.style.display = "none";
+                    clearTimeout(temporizadorInactividad);
+                    clearInterval(intervaloVerificacionToken);
                 }
+            }
+            if (e.key === 'lcc_sesion' && e.newValue === null) {
+                loginSection.style.display = "flex";
+                dashboard.style.display = "none";
+                clearTimeout(temporizadorInactividad);
+                clearInterval(intervaloVerificacionToken);
             }
         });
 
         function reiniciarTemporizadorInactividad() {
-            if (!localStorage.getItem('lcc_sesion')) return;
+            if (!localStorage.getItem('lcc_sesion') || localStorage.getItem('lcc_active_tab_owner') !== tabId) return;
             clearTimeout(temporizadorInactividad);
             temporizadorInactividad = setTimeout(() => {
                 alert("Su sesión ha expirado por inactividad (20 minutos).");
@@ -643,46 +699,6 @@
         }
 
         cargarDepartamentos();
-
-        function verificarSesionGuardada() {
-            const sesionGuardada = localStorage.getItem('lcc_sesion');
-            if (sesionGuardada) {
-                try {
-                    const datos = JSON.parse(sesionGuardada);
-                    
-                    loginSection.style.display = "none";
-                    dashboard.style.display = "block";
-
-                    userNameDisplay.textContent = datos.nombre;
-                    userEmpDisplay.textContent = datos.empleado;
-                    userDeptoDisplay.textContent = datos.departamento;
-
-                    profileName.textContent = datos.nombre;
-                    profileEmp.textContent = datos.empleado;
-                    profileDept.textContent = datos.departamento;
-
-                    if (datos.isAdmin) {
-                        adminBadge.style.display = "block";
-                        profileRango.textContent = "🛡️ Administrador";
-                        profileRango.className = "badge-rango badge-admin";
-                    } else {
-                        profileRango.textContent = "👤 Usuario Estándar";
-                        profileRango.className = "badge-rango badge-user";
-                    }
-
-                    const seccionActiva = localStorage.getItem('lcc_seccion_activa') || 'inicio';
-                    const tituloActivo = localStorage.getItem('lcc_titulo_activo') || 'Inicio';
-                    
-                    const itemMenu = document.querySelector(`.menu-item[data-section="${seccionActiva}"]`);
-                    cambiarSeccion(seccionActiva, tituloActivo, itemMenu, false);
-
-                    iniciarControlInactividad();
-                } catch (e) {
-                    localStorage.removeItem('lcc_sesion');
-                }
-            }
-        }
-
         verificarSesionGuardada();
 
         function toggleMenu() {
@@ -743,11 +759,11 @@
         }
 
         function cerrarSesion() {
-            sessionStorage.removeItem('lcc_active_tab');
-            localStorage.removeItem('lcc_active_tab_owner');
             localStorage.removeItem('lcc_sesion');
+            localStorage.removeItem('lcc_active_tab_owner');
             localStorage.removeItem('lcc_seccion_activa');
             localStorage.removeItem('lcc_titulo_activo');
+            clearInterval(intervaloVerificacionToken);
             location.reload();
         }
 
@@ -787,7 +803,10 @@
                 }
                 if (btnIngresar) btnIngresar.disabled = true;
 
-                const urlFinal = `${WEB_APP_URL}?nombre=${encodeURIComponent(nombre)}&departamento=${encodeURIComponent(departamento)}`;
+                // Generamos un token de sesión único por cada nuevo inicio de sesión global
+                const sessionToken = 'token_' + Math.random().toString(36).substring(2) + '_' + Date.now();
+
+                const urlFinal = `${WEB_APP_URL}?nombre=${encodeURIComponent(nombre)}&departamento=${encodeURIComponent(departamento)}&sessionToken=${encodeURIComponent(sessionToken)}`;
 
                 try {
                     const response = await fetch(urlFinal);
@@ -798,10 +817,11 @@
                             empleado: numEmpleado,
                             nombre: nombre,
                             departamento: departamento,
-                            isAdmin: result.isAdmin || false
+                            isAdmin: result.isAdmin || false,
+                            sessionToken: sessionToken
                         };
+                        
                         localStorage.setItem('lcc_sesion', JSON.stringify(datosSesion));
-                        sessionStorage.setItem('lcc_active_tab', tabId);
                         localStorage.setItem('lcc_active_tab_owner', tabId);
 
                         verificarSesionGuardada();
